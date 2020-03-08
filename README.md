@@ -6,5 +6,5 @@ Repository that contains all my Pokitto games
 Platformer/Puzzle game.
 
 # Demos
-## Draw
+## Bitmap
 Simple demo that draws a bitmap to screen.
