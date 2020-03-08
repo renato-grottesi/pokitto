@@ -1,6 +1,6 @@
 ###############################################################################
 # Project settings
-PROJECT := game
+PROJECT := draw
 ###############################################################################
 
 # add files to be compiled
@@ -97,7 +97,11 @@ OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/clock_11u6x.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/dma_11u6x.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/iap.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/timer_11u6x.o
+OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/asm/mode1.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/asm/mode2.o
+OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/asm/mode13.o
+OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/asm/mode15.o
+OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_HW/asm/mode64.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_LIBS/Synth/Synth.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_LIBS/Synth/Synth_envfuncs.o
 OBJECTS += $(POKITTO_LIB_PATH)/POKITTO_LIBS/Synth/Synth_helpers.o
@@ -318,7 +322,7 @@ LD_SYS_LIBS :=-Wl,--start-group -lstdc++ -lsupc++ -lm -lc -lgcc -lnosys  -Wl,--e
 
 .PHONY: all lst size
 
-all: firmware.bin $(PROJECT).hex size
+all: $(PROJECT).bin $(PROJECT).hex size
 
 .s.o:
 	+@$(call MAKEDIR,$(dir $@))
@@ -349,7 +353,7 @@ $(PROJECT).elf: $(OBJECTS) $(SYS_OBJECTS) $(PROJECT).link_script.ld
 	+@echo "link: $(notdir $@)"
 	@$(LD) $(LD_FLAGS) -T $(filter-out %.o, $^) $(LIBRARY_PATHS) --output $@ $(filter %.o, $^) $(LIBRARIES) $(LD_SYS_LIBS)
 
-firmware.bin: $(PROJECT).elf
+$(PROJECT).bin: $(PROJECT).elf
 	$(ELF2BIN) -O binary $< $@
 	+@echo "===== bin file ready to flash: $(OBJDIR)/$@ =====" 
 

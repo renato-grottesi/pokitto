@@ -1,22 +1,36 @@
-/* Pokitto drawBitmap example - draws a Pokitto icon by @trelemar */
+#include "Pokitto.h"
+#include "pokitto_icon.h"
 
-#include "Pokitto.h" // include Pokitto library
-#include "pokitto_icon.h" // include the Pokitto icon graphics file
+Pokitto::Core mygame;
 
-Pokitto::Core mygame; //create Pokitto application instance
+int main() {
+  mygame.begin();
+  mygame.display.load565Palette(pokitto_icon_pal);
+  mygame.display.bgcolor = 0;
 
-int main () {
-    mygame.begin(); // start the application
-    mygame.display.load565Palette(pokitto_icon_pal); //load the palette for the image
-    mygame.display.bgcolor=0;
-    /* the "while" loop runs as long as the program is running */
-    while (mygame.isRunning()) {
-        /* mygame.update() is processed whenever it is time to update the screen */
-        if (mygame.update()) {
-            mygame.display.drawBitmap(0,0,pokitto_icon); // draw the pokitto_icon graphic
-            }
-        }
+  int16_t x = 0;
+  int16_t y = 0;
+  while (mygame.isRunning()) {
+    if (mygame.update()) {
+      if (mygame.buttons.rightBtn())
+        x++;
+      if (mygame.buttons.leftBtn())
+        x--;
+      if (mygame.buttons.downBtn())
+        y++;
+      if (mygame.buttons.upBtn())
+        y--;
+      if (x < 0)
+        x = 0;
+      if (x > 64)
+        x = 128;
+      if (y < 0)
+        y = 0;
+      if (y > 64)
+        y = 128;
+      mygame.display.drawBitmap(x, y, pokitto_icon);
+    }
+  }
 
-    return 0; // this is "good programming manners". Program informs it ended without errors
+  return 0;
 }
-
