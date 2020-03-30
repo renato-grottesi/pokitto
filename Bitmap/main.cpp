@@ -108,6 +108,25 @@ const uint16_t* palettes[spriteCount] = {
 	sprite4_pal,
 };
 
+void drawBitmap(const uint16_t screen_y, const int16_t bmp_x, const int16_t bmp_y, const uint16_t* palette, const uint8_t* bitmap) {
+	if(screen_y>=bmp_y && screen_y<bmp_y+bitmap[1]) {
+		uint16_t bmpy = screen_y-bmp_y;
+		for(uint8_t x = 0; x < bitmap[0]/2; x++) {
+			if(bmp_x+x*2 < 220) {
+				uint8_t twocolors = bitmap[2 + bmpy*(bitmap[0]/2) + x];
+				uint32_t col16_1 = palette[((twocolors&0xF0)>>4)&0xF];
+				uint32_t col16_2 = palette[twocolors&0x0F];
+				// Shift from a 565 16 bit to the 32 bit madness
+				// FEDCBA9876543210FEDCBA9876543210
+				// ------------RRRRRRGGGGGGBBBBBB--
+				// ----------------RRRRRGGGGGGBBBBB
+				if((((twocolors&0xF0)>>4)&0xF)!=1) screenbuffer[bmp_x+x*2+0] = ((col16_1&0xF800) << 4) + ((col16_1&0x07E0) << 3) + ((col16_1&0x001F) << 2);
+				if((twocolors&0x0F)!=1)screenbuffer[bmp_x+x*2+1] = ((col16_2&0xF800) << 4) + ((col16_2&0x07E0) << 3) + ((col16_2&0x001F) << 2);
+			}
+		}
+	}
+}
+
 
 int main() {
 	// Init
@@ -124,18 +143,8 @@ int main() {
 
 	// Do not clear the background!
 	mygame.display.persistence = 1;
-
-	// Set the palette for the screen buffer
-	mygame.display.palette[0] = background_pal[0];
-	mygame.display.palette[1] = background_pal[1];
-	mygame.display.palette[2] = background_pal[2];
-	mygame.display.palette[3] = background_pal[3];
-
 	mygame.begin();
-
 	mygame.setFrameRate(100);  // No limits!
-	uint8_t flag = 0;
-	uint32_t cshift = 0;
 
 	// Game loop
 	while (mygame.isRunning()) {
@@ -144,28 +153,13 @@ int main() {
 			prepare();
 			for(uint8_t y = 0; y < 176; y++) {
 				for(uint8_t x = 0; x < 220; x++) {
-					uint32_t r = (((y+cshift)/8) % 0b111111) << 14;
-					uint32_t g = (((x+cshift)/4) % 0b111111) << 8;
+					uint32_t r = ((y/8) % 0b111111) << 14;
+					uint32_t g = ((x/4) % 0b111111) << 8;
 					uint32_t b = 0;//((y%4) ? 0xFC: 0);
 					screenbuffer[x] = r + g + b;
 				}
 
-				if(y>=icon_y && y<icon_y+pokitto_icon[1]) {
-					uint16_t bmpy = y-icon_y;
-					for(uint8_t x = 0; x < pokitto_icon[0]/2; x++) {
-						if(icon_x+x*2 < 220) {
-							uint8_t twocolors = pokitto_icon[2 + bmpy*(pokitto_icon[0]/2) + x];
-							uint32_t col16_1 = pokitto_icon_pal[((twocolors&0xF0)>>4)&0xF];
-							uint32_t col16_2 = pokitto_icon_pal[twocolors&0x0F];
-							// Shift from a 565 16 bit to the 32 bit madness
-							// FEDCBA9876543210FEDCBA9876543210
-							// ------------RRRRRRGGGGGGBBBBBB--
-							// ----------------RRRRRGGGGGGBBBBB
-							if((((twocolors&0xF0)>>4)&0xF)!=1) screenbuffer[icon_x+x*2+0] = ((col16_1&0xF800) << 4) + ((col16_1&0x07E0) << 3) + ((col16_1&0x001F) << 2);
-							if((twocolors&0x0F)!=1)screenbuffer[icon_x+x*2+1] = ((col16_2&0xF800) << 4) + ((col16_2&0x07E0) << 3) + ((col16_2&0x001F) << 2);
-						}
-					}
-				}
+				drawBitmap(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon);
 
 				colorscreen();
 			}
