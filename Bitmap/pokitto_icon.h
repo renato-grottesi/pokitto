@@ -1,9 +1,6 @@
 #include <stdint.h>
 
-//Total colors 10
-const uint16_t pokitto_icon_pal[] = {
-27973,63519,4195,28185,57210,13092,33972,54611,23545,16678,
-};
+const uint16_t pokitto_icon_pal[] = { 27973,63519,4195,28185,57210,13092,33972,54611,23545,16678, };
 
 const uint8_t pokitto_icon[] =
 {

@@ -1,24 +1,10 @@
-
 #include <stdint.h>
 
-// Sprite palettes
-const uint16_t sprite1_pal[] = {
-0,608,1536,30702
-};
-const uint16_t sprite2_pal[] = {
-0,84,4639,21663
-};
-const uint16_t sprite3_pal[] = {
-0,30816,63687,64756
-};
-const uint16_t sprite4_pal[] = {
-0,27392,63232,63345
-};
-
-// Background palette
-const uint16_t background_pal[] = {
-60683,32963,49572,65502
-};
+const uint16_t sprite1_pal[] = { 0,608,1536,30702 };
+const uint16_t sprite2_pal[] = { 0,84,4639,21663 };
+const uint16_t sprite3_pal[] = { 0,30816,63687,64756 };
+const uint16_t sprite4_pal[] = { 0,27392,63232,63345 };
+const uint16_t background_pal[] = { 60683,32963,49572,65502 };
 
 const uint8_t sprite_bmp[] = {
 32,32,
