@@ -1,6 +1,9 @@
 #include "Pokitto.h"
 #include "gfxdata.h"
 #include "pokitto_icon.h"
+
+#define SHOW_FPS 1
+
 Pokitto::Core mygame;
 
 static inline void setup_data(uint16_t data) {
@@ -51,7 +54,7 @@ static void prepare(void) {
 // This is the one line framebuffer of 220 pixels.
 // The +4 is to allow 4 pixels of overflow when rendering sprites so that they don't have to add
 // more test.
-uint16_t __attribute__((section(".bss"))) __attribute__((aligned)) screenbuffer[220 + 4];
+uint16_t __attribute__((section(".bss"))) __attribute__((aligned)) screenbuffer[LCDWIDTH + 4];
 
 static void colorscreen() {
   register uint32_t wrbit __asm("r0") = 1 << 12;
@@ -60,7 +63,7 @@ static void colorscreen() {
   register uint32_t lcd_124 __asm("r3") = 0xA0002204;
   register uint32_t color __asm("r4") = 0;
 
-  for (uint8_t x = 0; x < 220; x++) {
+  for (uint8_t x = 0; x < LCDWIDTH; x++) {
     // Shift from a 565 16 bit to the 32 register format
     // FEDCBA9876543210FEDCBA9876543210
     // -------------RRRRRGGGGGGBBBBB---
@@ -87,7 +90,7 @@ void drawBitmapPal16(const uint16_t screen_y,
   if (screen_y >= bmp_y && screen_y < bmp_y + bitmap[1]) {
     uint16_t bmpy = screen_y - bmp_y;
     for (uint8_t x = 0; x < bitmap[0] / 2; x++) {
-      if (bmp_x + x * 2 < 220) {
+      if (bmp_x + x * 2 < LCDWIDTH) {
         uint8_t twocolors = bitmap[2 + bmpy * (bitmap[0] / 2) + x];
         uint16_t col16_1 = palette[(twocolors >> 4) & 0xF];
         uint16_t col16_2 = palette[(twocolors >> 0) & 0xF];
@@ -109,7 +112,7 @@ void drawBitmapPal4(const uint16_t screen_y,
   if (screen_y >= bmp_y && screen_y < bmp_y + bitmap[1]) {
     uint16_t bmpy = screen_y - bmp_y;
     for (uint8_t x = 0; x < bitmap[0] / 4; x++) {
-      if (bmp_x + x * 4 < 220) {
+      if (bmp_x + x * 4 < LCDWIDTH) {
         uint8_t twocolors = bitmap[2 + bmpy * (bitmap[0] / 4) + x];
         uint16_t col16_1 = palette[(twocolors >> 6) & 0x3];
         uint16_t col16_2 = palette[(twocolors >> 4) & 0x3];
@@ -137,8 +140,8 @@ const int16_t speed = 4;
 const uint8_t spriteCount = 4;
 const uint8_t spriteW = 32, spriteH = 32;
 MySprite mySprites[spriteCount];
-uint8_t icon_x = 0;
-uint8_t icon_y = 0;
+int16_t icon_x = 0;
+int16_t icon_y = 0;
 
 // Palettes
 const uint16_t* palettes[spriteCount] = {
@@ -166,16 +169,33 @@ int main() {
   mygame.begin();
   mygame.setFrameRate(100);  // No limits!
 
+#if SHOW_FPS
+  uint32_t old_time = mygame.getTime();
+  uint32_t frame_count = 0;
+  uint32_t fps = 0;
+#endif
+
   // Game loop
   while (mygame.isRunning()) {
     if (mygame.update(true)) {
+#if SHOW_FPS
+      frame_count++;
+      uint32_t new_time = mygame.getTime();
+      if ((new_time - old_time) > 1000) {
+        fps = frame_count;
+        frame_count = 0;
+        old_time = new_time;
+      }
+#endif
+
       prepare();
-      for (uint8_t y = 0; y < 176; y++) {
-        for (uint8_t x = 0; x < 220; x++) {
+      for (uint8_t y = 0; y < LCDHEIGHT; y++) {
+        for (uint8_t x = 0; x < LCDWIDTH; x++) {
           // Let's setup a nice sunset with code
-          screenbuffer[x] = ((176 - y) / 8) << 11;
+          screenbuffer[x] = ((LCDHEIGHT - y) / 8) << 11;
         }
 
+        // Drawing a full screen image has quite an impact on FPS: 50->30
         drawBitmapPal4(y, 0, 0, background_pal, background_bmp, 0);
 
         drawBitmapPal16(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon, 1);
@@ -183,6 +203,21 @@ int main() {
         for (int i = 0; i < spriteCount; i++) {
           drawBitmapPal4(y, mySprites[i].x, mySprites[i].y, palettes[i], sprite_bmp, 0);
         }
+
+#if SHOW_FPS
+        if (y < 4) {
+          for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
+            // Let's paint the FPS
+            screenbuffer[x] = 0x001f;
+          }
+        }
+        if (y < 2) {
+          for (uint8_t x = 0; x < LCDWIDTH; x++) {
+            // Let's paint a ruler
+            screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
+          }
+        }
+#endif
 
         colorscreen();
       }
@@ -218,28 +253,28 @@ int main() {
       }
 
       if (mygame.buttons.rightBtn()) {
-        icon_x++;
+        icon_x += 2;
       }
       if (mygame.buttons.leftBtn()) {
-        icon_x--;
+        icon_x -= 2;
       }
-      if (icon_x < 1) {
-        icon_x = 1;
+      if (icon_x < 0) {
+        icon_x = 0;
       }
-      if (icon_x > 64) {
-        icon_x = 64;
+      if (icon_x > LCDWIDTH - pokitto_icon[0]) {
+        icon_x = LCDWIDTH - pokitto_icon[0];
       }
       if (mygame.buttons.downBtn()) {
-        icon_y++;
+        icon_y += 2;
       }
       if (mygame.buttons.upBtn()) {
-        icon_y--;
+        icon_y -= 2;
       }
-      if (icon_y < 1) {
-        icon_y = 1;
+      if (icon_y < 0) {
+        icon_y = 0;
       }
-      if (icon_y > 64) {
-        icon_y = 64;
+      if (icon_y > LCDHEIGHT - pokitto_icon[1]) {
+        icon_y = LCDHEIGHT - pokitto_icon[1];
       }
     }
   }
