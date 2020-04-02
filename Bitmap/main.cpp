@@ -51,17 +51,9 @@ static void prepare(void) {
 // This is the one line framebuffer of 220 pixels.
 // The +4 is to allow 4 pixels of overflow when rendering sprites so that they don't have to add
 // more test.
-// TODO: optimize this to a uint16 and leave the shifting for the colorscreen()
-uint32_t __attribute__((section(".bss"))) __attribute__((aligned)) screenbuffer[220 + 4];
+uint16_t __attribute__((section(".bss"))) __attribute__((aligned)) screenbuffer[220 + 4];
 
 static void colorscreen() {
-  // 32 bits of the register with the color:
-  // FEDCBA9876543210FEDCBA9876543210
-  // -------------RRRRRGGGGGGBBBBB---
-  // 0x7C000	// red   6 bits
-  // 0x03F00	// green 6 bits
-  // 0x000FC	// blue  6 bits
-
   register uint32_t wrbit __asm("r0") = 1 << 12;
   register uint32_t lcd_nil __asm("r1") = 0xA0002188;
   register uint32_t lcd_clr __asm("r2") = 0xA0002284;
@@ -69,7 +61,11 @@ static void colorscreen() {
   register uint32_t color __asm("r4") = 0;
 
   for (uint8_t x = 0; x < 220; x++) {
-    color = screenbuffer[x];
+    // Shift from a 565 16 bit to the 32 register format
+    // FEDCBA9876543210FEDCBA9876543210
+    // -------------RRRRRGGGGGGBBBBB---
+    // ----------------RRRRRGGGGGGBBBBB
+    color = (screenbuffer[x]) << 3;
 
     __asm__ __volatile__(
         "str %[COLOR], [%[LCD]];"     // COLOR at offset 0   of LCD
@@ -82,28 +78,23 @@ static void colorscreen() {
   }
 }
 
-// Shift from a 565 16 bit to the 32 register format
-// FEDCBA9876543210FEDCBA9876543210
-// -------------RRRRRGGGGGGBBBBB---
-// ----------------RRRRRGGGGGGBBBBB
-#define RGB565TO18(col16) (col16 << 3)
-
 void drawBitmapPal16(const uint16_t screen_y,
                      const int16_t bmp_x,
                      const int16_t bmp_y,
                      const uint16_t* palette,
-                     const uint8_t* bitmap) {
+                     const uint8_t* bitmap,
+                     const uint8_t transparent) {
   if (screen_y >= bmp_y && screen_y < bmp_y + bitmap[1]) {
     uint16_t bmpy = screen_y - bmp_y;
     for (uint8_t x = 0; x < bitmap[0] / 2; x++) {
       if (bmp_x + x * 2 < 220) {
         uint8_t twocolors = bitmap[2 + bmpy * (bitmap[0] / 2) + x];
-        uint32_t col16_1 = palette[(twocolors >> 4) & 0xF];
-        uint32_t col16_2 = palette[(twocolors >> 0) & 0xF];
-        if (((twocolors >> 4) & 0xF) != 1)
-          screenbuffer[bmp_x + x * 2 + 0] = RGB565TO18(col16_1);
-        if (((twocolors >> 0) & 0xF) != 1)
-          screenbuffer[bmp_x + x * 2 + 1] = RGB565TO18(col16_2);
+        uint16_t col16_1 = palette[(twocolors >> 4) & 0xF];
+        uint16_t col16_2 = palette[(twocolors >> 0) & 0xF];
+        if (((twocolors >> 4) & 0xF) != transparent)
+          screenbuffer[bmp_x + x * 2 + 0] = col16_1;
+        if (((twocolors >> 0) & 0xF) != transparent)
+          screenbuffer[bmp_x + x * 2 + 1] = col16_2;
       }
     }
   }
@@ -113,24 +104,25 @@ void drawBitmapPal4(const uint16_t screen_y,
                     const int16_t bmp_x,
                     const int16_t bmp_y,
                     const uint16_t* palette,
-                    const uint8_t* bitmap) {
+                    const uint8_t* bitmap,
+                    const uint8_t transparent) {
   if (screen_y >= bmp_y && screen_y < bmp_y + bitmap[1]) {
     uint16_t bmpy = screen_y - bmp_y;
     for (uint8_t x = 0; x < bitmap[0] / 4; x++) {
       if (bmp_x + x * 4 < 220) {
         uint8_t twocolors = bitmap[2 + bmpy * (bitmap[0] / 4) + x];
-        uint32_t col16_1 = palette[(twocolors >> 6) & 0x3];
-        uint32_t col16_2 = palette[(twocolors >> 4) & 0x3];
-        uint32_t col16_3 = palette[(twocolors >> 2) & 0x3];
-        uint32_t col16_4 = palette[(twocolors >> 0) & 0x3];
-        if (((twocolors >> 6) & 0xF) != 0)
-          screenbuffer[bmp_x + x * 4 + 0] = RGB565TO18(col16_1);
-        if (((twocolors >> 4) & 0xF) != 0)
-          screenbuffer[bmp_x + x * 4 + 1] = RGB565TO18(col16_2);
-        if (((twocolors >> 2) & 0xF) != 0)
-          screenbuffer[bmp_x + x * 4 + 2] = RGB565TO18(col16_3);
-        if (((twocolors >> 0) & 0xF) != 0)
-          screenbuffer[bmp_x + x * 4 + 3] = RGB565TO18(col16_4);
+        uint16_t col16_1 = palette[(twocolors >> 6) & 0x3];
+        uint16_t col16_2 = palette[(twocolors >> 4) & 0x3];
+        uint16_t col16_3 = palette[(twocolors >> 2) & 0x3];
+        uint16_t col16_4 = palette[(twocolors >> 0) & 0x3];
+        if (((twocolors >> 6) & 0x3) != transparent)
+          screenbuffer[bmp_x + x * 4 + 0] = col16_1;
+        if (((twocolors >> 4) & 0x3) != transparent)
+          screenbuffer[bmp_x + x * 4 + 1] = col16_2;
+        if (((twocolors >> 2) & 0x3) != transparent)
+          screenbuffer[bmp_x + x * 4 + 2] = col16_3;
+        if (((twocolors >> 0) & 0x3) != transparent)
+          screenbuffer[bmp_x + x * 4 + 3] = col16_4;
       }
     }
   }
@@ -180,19 +172,16 @@ int main() {
       prepare();
       for (uint8_t y = 0; y < 176; y++) {
         for (uint8_t x = 0; x < 220; x++) {
-          //					uint32_t r = ((y/8) % 0b111111) << 14;
-          //					uint32_t g = ((x/4) % 0b111111) << 8;
-          //					uint32_t b = 0;//((y%4) ? 0xFC: 0);
-          //					screenbuffer[x] = r + g + b;
-          screenbuffer[x] = ((176 - y) / 8) << 14;
+          // Let's setup a nice sunset with code
+          screenbuffer[x] = ((176 - y) / 8) << 11;
         }
 
-        drawBitmapPal4(y, 0, 0, background_pal, background_bmp);
+        drawBitmapPal4(y, 0, 0, background_pal, background_bmp, 0);
 
-        drawBitmapPal16(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon);
+        drawBitmapPal16(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon, 1);
 
         for (int i = 0; i < spriteCount; i++) {
-          drawBitmapPal4(y, mySprites[i].x, mySprites[i].y, palettes[i], sprite_bmp);
+          drawBitmapPal4(y, mySprites[i].x, mySprites[i].y, palettes[i], sprite_bmp, 0);
         }
 
         colorscreen();
