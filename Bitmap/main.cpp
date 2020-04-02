@@ -1,11 +1,13 @@
 #include "OneLineDisplay.hpp"
 #include "Pokitto.h"
+#include "Synth.h"
 #include "gfxdata.h"
 #include "pokitto_icon.h"
 
 #define SHOW_FPS 1
 
 Pokitto::Core mygame;
+Pokitto::Sound snd;
 
 // MySprite
 struct MySprite {
@@ -27,6 +29,10 @@ const uint16_t* palettes[spriteCount] = {
     sprite4_pal,
 };
 
+int tonefreq = 33;
+uint8_t amplitude = 255;
+uint8_t wavetype = 1, arpmode = 0;
+
 int main() {
   // Init
   int16_t startX = 0, startY = 0;
@@ -42,6 +48,9 @@ int main() {
 
   mygame.begin();
   mygame.setFrameRate(100);
+  snd.setVolume(snd.getMaxVol());
+  snd.ampEnable(1);
+  snd.playTone(1, tonefreq, amplitude, wavetype, arpmode);
 
 #if SHOW_FPS
   uint32_t old_time = mygame.getTime();
