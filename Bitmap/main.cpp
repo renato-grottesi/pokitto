@@ -8,10 +8,12 @@
 
 Pokitto::Core mygame;
 Pokitto::Sound snd;
+OneLineDisplay display;
 
 // MySprite
 struct MySprite {
   int16_t x, y, w, h, vx, vy;
+  const uint16_t* pal;
 };
 
 const int16_t speed = 4;
@@ -21,23 +23,14 @@ MySprite mySprites[spriteCount];
 int16_t icon_x = 0;
 int16_t icon_y = 0;
 
-// Palettes
-const uint16_t* palettes[spriteCount] = {
-    sprite1_pal,
-    sprite2_pal,
-    sprite3_pal,
-    sprite4_pal,
-};
-
-int tonefreq = 33;
+int16_t tonefreq = 33;
 uint8_t amplitude = 255;
-uint8_t wavetype = 1, arpmode = 0;
+uint8_t wavetype = 1;
+uint8_t arpmode = 0;
 
 int main() {
-  // Init
   int16_t startX = 0, startY = 0;
   for (int i = 0; i < spriteCount; i++) {
-    // Set my sprite data.
     mySprites[i].x = startX + i * 21;
     mySprites[i].y = startY + i * 21;
     mySprites[i].w = spriteW;
@@ -45,12 +38,19 @@ int main() {
     mySprites[i].vx = speed;
     mySprites[i].vy = speed;
   }
+  mySprites[0].pal = sprite1_pal;
+  mySprites[1].pal = sprite2_pal;
+  mySprites[2].pal = sprite3_pal;
+  mySprites[3].pal = sprite4_pal;
 
   mygame.begin();
   mygame.setFrameRate(100);
+
   snd.setVolume(snd.getMaxVol());
   snd.ampEnable(1);
   snd.playTone(1, tonefreq, amplitude, wavetype, arpmode);
+
+  uint16_t* screenbuffer = display.getBuffer();
 
 #if SHOW_FPS
   uint32_t old_time = mygame.getTime();
@@ -71,39 +71,39 @@ int main() {
       }
 #endif
 
-      OneLineDisplay::prepare();
+      display.startDrawing();
       for (uint8_t y = 0; y < LCDHEIGHT; y++) {
         for (uint8_t x = 0; x < LCDWIDTH; x++) {
           // Let's setup a nice sunset with code
-          OneLineDisplay::screenbuffer[x] = ((LCDHEIGHT - y) / 8) << 11;
+          screenbuffer[x] = (y / 6) << 0;
         }
 
         // Drawing a full screen image has quite an impact on FPS: 50->30
-        OneLineDisplay::drawBitmapPal4(y, 0, 0, background_pal, background_bmp, 0);
+        display.drawBitmapPal4(y, 0, 0, background_pal, background_bmp, 0);
 
-        OneLineDisplay::drawBitmapPal16(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon, 1);
+        display.drawBitmapPal16(y, icon_x, icon_y, pokitto_icon_pal, pokitto_icon, 1);
 
         for (int i = 0; i < spriteCount; i++) {
-          OneLineDisplay::drawBitmapPal4(y, mySprites[i].x, mySprites[i].y, palettes[i],
-                                         sprite_bmp, 0);
+          display.drawBitmapPal4(y, mySprites[i].x, mySprites[i].y, mySprites[i].pal,
+                                 sprite_bmp, 0);
         }
 
 #if SHOW_FPS
         if (y < 4) {
           for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
             // Let's paint the FPS
-            OneLineDisplay::screenbuffer[x] = 0x001f;
+            screenbuffer[x] = 0x001f;
           }
         }
         if (y < 2) {
           for (uint8_t x = 0; x < LCDWIDTH; x++) {
             // Let's paint a ruler
-            OneLineDisplay::screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
+            screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
           }
         }
 #endif
 
-        OneLineDisplay::colorscreen();
+        display.drawLine();
       }
 
       // Move mySprites
@@ -131,7 +131,6 @@ int main() {
           mySprites[i].vy = -speed;
         }
 
-        //
         mySprites[i].x = x;
         mySprites[i].y = y;
       }
@@ -142,11 +141,11 @@ int main() {
       if (mygame.buttons.leftBtn()) {
         icon_x -= 2;
       }
-      if (icon_x < 0) {
-        icon_x = 0;
+      if (icon_x < -pokitto_icon[0] / 2) {
+        icon_x = -pokitto_icon[0] / 2;
       }
-      if (icon_x > LCDWIDTH - pokitto_icon[0]) {
-        icon_x = LCDWIDTH - pokitto_icon[0];
+      if (icon_x > int16_t(LCDWIDTH - pokitto_icon[0] / 2)) {
+        icon_x = int16_t(LCDWIDTH - pokitto_icon[0] / 2);
       }
       if (mygame.buttons.downBtn()) {
         icon_y += 2;
@@ -154,11 +153,11 @@ int main() {
       if (mygame.buttons.upBtn()) {
         icon_y -= 2;
       }
-      if (icon_y < 0) {
-        icon_y = 0;
+      if (icon_y < -pokitto_icon[1] / 2) {
+        icon_y = -pokitto_icon[1] / 2;
       }
-      if (icon_y > LCDHEIGHT - pokitto_icon[1]) {
-        icon_y = LCDHEIGHT - pokitto_icon[1];
+      if (icon_y > int16_t(LCDHEIGHT - pokitto_icon[1] / 2)) {
+        icon_y = int16_t(LCDHEIGHT - pokitto_icon[1] / 2);
       }
     }
   }
