@@ -8,7 +8,7 @@ PROJECT := draw
 POKITTO_LIB_PATH = /home/renato/Projects/PokittoLib/Pokitto
 
 OBJECTS += main.o
-OBJECTS += OneLineDisplay.o
+OBJECTS += DynamicDisplay.o
 
 ###############################################################################
 # Boiler-plate

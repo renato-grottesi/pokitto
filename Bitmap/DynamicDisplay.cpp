@@ -1,4 +1,4 @@
-#include "OneLineDisplay.hpp"
+#include "DynamicDisplay.hpp"
 
 // This is the one line framebuffer of 220 +4 pixels.
 // The +4 is to allow 4 pixels of overflow when rendering sprites so that they don't have to
@@ -35,7 +35,7 @@ inline void write_data(uint16_t data) {
   SET_CS;
 }
 
-void OneLineDisplay::startDrawing(void) {
+void DynamicDisplay::startDrawing(void) {
   write_command(0x03);
   write_data(0x1038);
   write_command(0x20);  // Horizontal DRAM Address
@@ -47,7 +47,7 @@ void OneLineDisplay::startDrawing(void) {
   SET_MASK_P2;
 }
 
-void OneLineDisplay::drawLine() {
+void DynamicDisplay::drawLine() {
   const register uint32_t wrbit __asm("r0") = 1 << 12;
   const register uint32_t lcd_nil __asm("r1") = 0xA0002188;
   const register uint32_t lcd_clr __asm("r2") = 0xA0002284;
@@ -72,7 +72,7 @@ void OneLineDisplay::drawLine() {
   }
 }
 
-void OneLineDisplay::drawBitmapPal16(const int16_t screen_y,
+void DynamicDisplay::drawBitmapPal16(const int16_t screen_y,
                                      const int16_t bmp_x,
                                      const int16_t bmp_y,
                                      const uint16_t* palette,
@@ -82,13 +82,13 @@ void OneLineDisplay::drawBitmapPal16(const int16_t screen_y,
   const uint32_t height = bitmap[1];
   const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 2);
   const uint32_t x0 = bmp_x < 0 ? (-bmp_x) / 2 : 0;
+  const uint32_t x1 =
+      (bmp_x + width) > ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - bmp_x) / 2 : width / 2;
   if (screen_y < bmp_y)
     return;
   if (screen_y >= (bmp_y + height))
     return;
-  for (int32_t x = x0; x < width / 2; x++) {
-    if ((bmp_x + x * 2) >= ((int16_t)LCDWIDTH))
-      break;
+  for (int32_t x = x0; x < x1; x++) {
     uint32_t indices = bitmap[idxoff + x];
     uint8_t shifts[2] = {4, 0};
     for (uint32_t i = 0; i < 2; i++) {
@@ -100,7 +100,7 @@ void OneLineDisplay::drawBitmapPal16(const int16_t screen_y,
   }
 }
 
-void OneLineDisplay::drawBitmapPal4(const int16_t screen_y,
+void DynamicDisplay::drawBitmapPal4(const int16_t screen_y,
                                     const int16_t bmp_x,
                                     const int16_t bmp_y,
                                     const uint16_t* palette,
@@ -110,13 +110,13 @@ void OneLineDisplay::drawBitmapPal4(const int16_t screen_y,
   const uint32_t height = bitmap[1];
   const register uint32_t idxoff __asm("r0") = 2 + (screen_y - bmp_y) * (width / 4);
   const uint32_t x0 = bmp_x < 0 ? (-bmp_x) / 4 : 0;
+  const uint32_t x1 =
+      (bmp_x + width) > ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - bmp_x) / 4 : width / 4;
   if (screen_y < bmp_y)
     return;
   if (screen_y >= (bmp_y + height))
     return;
-  for (int32_t x = x0; x < width / 4; x++) {
-    if ((bmp_x + x * 4) >= ((int16_t)LCDWIDTH))
-      break;
+  for (int32_t x = x0; x < x1; x++) {
     uint32_t indices = bitmap[idxoff + x];
     uint8_t shifts[4] = {6, 4, 2, 0};
     for (uint32_t i = 0; i < 4; i++) {
@@ -128,6 +128,6 @@ void OneLineDisplay::drawBitmapPal4(const int16_t screen_y,
   }
 }
 
-uint16_t* OneLineDisplay::getBuffer() {
+uint16_t* DynamicDisplay::getBuffer() {
   return screenbuffer;
 }

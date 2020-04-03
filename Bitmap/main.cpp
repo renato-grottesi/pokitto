@@ -1,4 +1,4 @@
-#include "OneLineDisplay.hpp"
+#include "DynamicDisplay.hpp"
 #include "Pokitto.h"
 #include "Synth.h"
 #include "gfxdata.h"
@@ -8,7 +8,7 @@
 
 Pokitto::Core mygame;
 Pokitto::Sound snd;
-OneLineDisplay display;
+DynamicDisplay display;
 
 // MySprite
 struct MySprite {

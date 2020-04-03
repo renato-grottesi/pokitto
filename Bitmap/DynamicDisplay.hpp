@@ -2,10 +2,25 @@
 
 #include "Pokitto.h"
 
-class OneLineDisplay {
+struct DynamicSprite {
  public:
-  OneLineDisplay() = default;
-  ~OneLineDisplay() = default;
+  int16_t x;
+  int16_t y;
+  const int16_t w;
+  const int16_t h;
+  const uint16_t* p;
+
+ private:
+  int16_t sx;
+  int16_t sy;
+  int16_t sx0;
+  int16_t sx1;
+};
+
+class DynamicDisplay {
+ public:
+  DynamicDisplay() = default;
+  ~DynamicDisplay() = default;
 
   void startDrawing(void);
   void drawLine();
