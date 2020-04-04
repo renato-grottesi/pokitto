@@ -1,3 +1,4 @@
+#define SHOW_FPS 1
 #include "DynamicDisplay.hpp"
 
 // This is the one line framebuffer of 220 +4 pixels.
@@ -47,7 +48,12 @@ void DynamicDisplay::startDrawing(void) {
   SET_MASK_P2;
 }
 
-void DynamicDisplay::drawLine() {
+/**
+ * The method must not be inlined to ensure that all registers
+ * are in the r0-r7 range to comply with the thumb mode of
+ * the asm block.
+ */
+void __attribute__((noinline)) DynamicDisplay::drawLine() {
   const register uint32_t wrbit __asm("r0") = 1 << 12;
   const register uint32_t lcd_nil __asm("r1") = 0xA0002188;
   const register uint32_t lcd_clr __asm("r2") = 0xA0002284;
@@ -77,20 +83,19 @@ void DynamicDisplay::drawBitmapPal16(const int16_t screen_y,
                                      const int16_t bmp_y,
                                      const uint16_t* palette,
                                      const uint8_t* bitmap,
-                                     const uint8_t transparent) {
+                                     const uint8_t transparent,
+                                     const int16_t sx0,
+                                     const int16_t sx1) {
   const uint32_t width = bitmap[0];
   const uint32_t height = bitmap[1];
-  const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 2);
-  const uint32_t x0 = bmp_x < 0 ? (-bmp_x) / 2 : 0;
-  const uint32_t x1 =
-      (bmp_x + width) > ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - bmp_x) / 2 : width / 2;
+  const register uint32_t idxoff __asm("r0") = 2 + (screen_y - bmp_y) * (width / 2);
   if (screen_y < bmp_y)
     return;
   if (screen_y >= (bmp_y + height))
     return;
-  for (int32_t x = x0; x < x1; x++) {
-    uint32_t indices = bitmap[idxoff + x];
-    uint8_t shifts[2] = {4, 0};
+  for (int32_t x = sx0 / 2; x < sx1 / 2; x++) {
+    const uint32_t indices = bitmap[idxoff + x];
+    const uint8_t shifts[2] = {4, 0};
     for (uint32_t i = 0; i < 2; i++) {
       uint32_t pidx = (indices >> shifts[i]) & 0xF;
       if (pidx != transparent) {
@@ -105,20 +110,19 @@ void DynamicDisplay::drawBitmapPal4(const int16_t screen_y,
                                     const int16_t bmp_y,
                                     const uint16_t* palette,
                                     const uint8_t* bitmap,
-                                    const uint8_t transparent) {
+                                    const uint8_t transparent,
+                                    const int16_t sx0,
+                                    const int16_t sx1) {
   const uint32_t width = bitmap[0];
   const uint32_t height = bitmap[1];
   const register uint32_t idxoff __asm("r0") = 2 + (screen_y - bmp_y) * (width / 4);
-  const uint32_t x0 = bmp_x < 0 ? (-bmp_x) / 4 : 0;
-  const uint32_t x1 =
-      (bmp_x + width) > ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - bmp_x) / 4 : width / 4;
   if (screen_y < bmp_y)
     return;
   if (screen_y >= (bmp_y + height))
     return;
-  for (int32_t x = x0; x < x1; x++) {
-    uint32_t indices = bitmap[idxoff + x];
-    uint8_t shifts[4] = {6, 4, 2, 0};
+  for (int32_t x = sx0 / 4; x < sx1 / 4; x++) {
+    const uint32_t indices = bitmap[idxoff + x];
+    const uint8_t shifts[4] = {6, 4, 2, 0};
     for (uint32_t i = 0; i < 4; i++) {
       uint32_t pidx = (indices >> shifts[i]) & 0x3;
       if (pidx != transparent) {
@@ -130,4 +134,51 @@ void DynamicDisplay::drawBitmapPal4(const int16_t screen_y,
 
 uint16_t* DynamicDisplay::getBuffer() {
   return screenbuffer;
+}
+
+void DynamicDisplay::drawSprites(const uint8_t count) {
+#if SHOW_FPS
+  frame_count++;
+  uint32_t new_time = Pokitto::Core::getTime();
+  if ((new_time - old_time) > 1000) {
+    fps = frame_count;
+    frame_count = 0;
+    old_time = new_time;
+  }
+#endif
+  for (uint8_t y = 0; y < LCDHEIGHT; y++) {
+    for (uint8_t x = 0; x < LCDWIDTH; x++) {
+      // Let's setup a nice sunset with code
+      screenbuffer[x] = (y / 6) << 0;
+    }
+
+    // assert that count < maxSprites
+    // Drawing a full screen image has quite an impact on FPS: 50->3
+    for (int i = 0; i < count; i++) {
+      if (sprites[i].palsize == 4) {
+        drawBitmapPal4(y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data,
+                       sprites[i].transp, sprites[i].sx0, sprites[i].sx1);
+      } else {
+        drawBitmapPal16(y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data,
+                        sprites[i].transp, sprites[i].sx0, sprites[i].sx1);
+      }
+    }
+
+#if SHOW_FPS
+    if (y < 4) {
+      for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
+        // Let's paint the FPS
+        screenbuffer[x] = 0x001f;
+      }
+    }
+    if (y < 2) {
+      for (uint8_t x = 0; x < LCDWIDTH; x++) {
+        // Let's paint a ruler
+        screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
+      }
+    }
+#endif
+
+    drawLine();
+  }
 }
