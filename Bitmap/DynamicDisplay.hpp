@@ -2,7 +2,11 @@
 
 #include "Pokitto.h"
 
+enum class PaletteSize : uint8_t { PAL2, PAL4, PAL16 };
+
 class DynamicSprite {
+  friend class DynamicDisplay;
+
  public:
   DynamicSprite() = default;
   ~DynamicSprite() = default;
@@ -10,7 +14,7 @@ class DynamicSprite {
   void setup(const uint16_t* _pal,
              const uint8_t* _data,
              uint8_t _transp,
-             uint8_t _palsize,
+             PaletteSize _palsize,
              int16_t _x,
              int16_t _y) {
     pal = _pal;
@@ -26,17 +30,19 @@ class DynamicSprite {
 
     sx0 = x < 0 ? (-x) : 0;
     sx1 = (x + data[0]) > ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - x) : data[0];
+    sy1 = y + data[1];
   }
 
- public:
+ private:
   int16_t x;
   int16_t y;
   const uint16_t* pal;
   const uint8_t* data;
   int16_t sx0;
   int16_t sx1;
+  int16_t sy1;
   int8_t transp;
-  int8_t palsize;
+  PaletteSize palsize;
 };
 
 class DynamicDisplay {
@@ -44,30 +50,14 @@ class DynamicDisplay {
   DynamicDisplay() = default;
   ~DynamicDisplay() = default;
 
-  void startDrawing(void);
   void drawLine();
   void drawSprites(uint8_t count);
   uint16_t* getBuffer();
 
-  void drawBitmapPal16(const int16_t screen_y,
-                       const int16_t bmp_x,
-                       const int16_t bmp_y,
-                       const uint16_t* palette,
-                       const uint8_t* bitmap,
-                       const uint8_t transparent,
-                       const int16_t sx0,
-                       const int16_t sx1);
-
-  void drawBitmapPal4(const int16_t screen_y,
-                      const int16_t bmp_x,
-                      const int16_t bmp_y,
-                      const uint16_t* palette,
-                      const uint8_t* bitmap,
-                      const uint8_t transparent,
-                      const int16_t sx0,
-                      const int16_t sx1);
   static const uint8_t maxSprites = 255;
   DynamicSprite sprites[maxSprites];
+
+ private:
 #if SHOW_FPS
   uint32_t old_time = 0;
   uint32_t frame_count = 0;

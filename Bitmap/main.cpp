@@ -4,7 +4,6 @@
 #include "gfxdata.h"
 #include "pokitto_icon.h"
 
-// MySprite
 struct MySprite {
   int16_t x, y, w, h, vx, vy;
   const uint16_t* pal;
@@ -17,7 +16,6 @@ int main() {
 
   const int16_t speed = 4;
   const uint8_t spriteCount = 64;
-  const uint8_t spriteW = 32, spriteH = 32;
   MySprite mySprites[spriteCount];
   int16_t icon_x = 0;
   int16_t icon_y = 0;
@@ -27,8 +25,9 @@ int main() {
   uint8_t wavetype = 1;
   uint8_t arpmode = 0;
 
-  display.sprites[0].setup(background_pal, background_bmp, 0, 4, 0, 0);
-  display.sprites[1].setup(pokitto_icon_pal, pokitto_icon, 1, 16, 0, 0);
+  // Drawing a full screen image has quite an impact on FPS
+  display.sprites[0].setup(background_pal, background_bmp, 0, PaletteSize::PAL4, 0, 0);
+  display.sprites[1].setup(pokitto_icon_pal, pokitto_icon, 1, PaletteSize::PAL16, 0, 0);
 
   srand(134719);
   const uint16_t* pals[] = {sprite1_pal, sprite2_pal, sprite3_pal, sprite4_pal};
@@ -41,8 +40,8 @@ int main() {
     mySprites[i].vx = -8 + rand() % 16;
     mySprites[i].vy = -8 + rand() % 16;
     mySprites[i].pal = pals[rand() % 4];
-    display.sprites[i].setup(pals[rand() % 4], bmps[rand() % 2], 0, 4, mySprites[i].x,
-                             mySprites[i].y);
+    display.sprites[i].setup(pals[rand() % 4], bmps[rand() % 2], 0, PaletteSize::PAL4,
+                             mySprites[i].x, mySprites[i].y);
   }
 
   mygame.begin();
@@ -57,19 +56,16 @@ int main() {
   // Game loop
   while (mygame.isRunning()) {
     if (mygame.update(true)) {
-      display.startDrawing();
       display.drawSprites(spriteCount);
 
-      // Move mySprites
+      // Move mySprites advancing x and y and bouncing from hidden edges
       for (int i = 2; i < spriteCount; i++) {
         int16_t x = mySprites[i].x, y = mySprites[i].y;
         int16_t w = mySprites[i].w, h = mySprites[i].h;
 
-        // Advance x and y.
         x += mySprites[i].vx;
         y += mySprites[i].vy;
 
-        // Bounce from hidden edges
         if (x < -mySprites[i].w) {
           x = -mySprites[i].w;
           mySprites[i].vx = speed;
@@ -90,6 +86,7 @@ int main() {
         display.sprites[i].setPosition(x, y);
       }
 
+      // Move pokitto icon by buttons input
       if (mygame.buttons.rightBtn()) {
         icon_x += 2;
       }

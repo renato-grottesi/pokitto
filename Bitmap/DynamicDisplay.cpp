@@ -36,7 +36,7 @@ inline void write_data(uint16_t data) {
   SET_CS;
 }
 
-void DynamicDisplay::startDrawing(void) {
+static void startDrawing(void) {
   write_command(0x03);
   write_data(0x1038);
   write_command(0x20);  // Horizontal DRAM Address
@@ -78,21 +78,16 @@ void __attribute__((noinline)) DynamicDisplay::drawLine() {
   }
 }
 
-void DynamicDisplay::drawBitmapPal16(const int16_t screen_y,
-                                     const int16_t bmp_x,
-                                     const int16_t bmp_y,
-                                     const uint16_t* palette,
-                                     const uint8_t* bitmap,
-                                     const uint8_t transparent,
-                                     const int16_t sx0,
-                                     const int16_t sx1) {
+static void drawBitmapPal16(const int16_t screen_y,
+                            const int16_t bmp_x,
+                            const int16_t bmp_y,
+                            const uint16_t* palette,
+                            const uint8_t* bitmap,
+                            const uint8_t transparent,
+                            const int16_t sx0,
+                            const int16_t sx1) {
   const uint32_t width = bitmap[0];
-  const uint32_t height = bitmap[1];
-  const register uint32_t idxoff __asm("r0") = 2 + (screen_y - bmp_y) * (width / 2);
-  if (screen_y < bmp_y)
-    return;
-  if (screen_y >= (bmp_y + height))
-    return;
+  const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 2);
   for (int32_t x = sx0 / 2; x < sx1 / 2; x++) {
     const uint32_t indices = bitmap[idxoff + x];
     const uint8_t shifts[2] = {4, 0};
@@ -105,21 +100,16 @@ void DynamicDisplay::drawBitmapPal16(const int16_t screen_y,
   }
 }
 
-void DynamicDisplay::drawBitmapPal4(const int16_t screen_y,
-                                    const int16_t bmp_x,
-                                    const int16_t bmp_y,
-                                    const uint16_t* palette,
-                                    const uint8_t* bitmap,
-                                    const uint8_t transparent,
-                                    const int16_t sx0,
-                                    const int16_t sx1) {
+static void drawBitmapPal4(const int16_t screen_y,
+                           const int16_t bmp_x,
+                           const int16_t bmp_y,
+                           const uint16_t* palette,
+                           const uint8_t* bitmap,
+                           const uint8_t transparent,
+                           const int16_t sx0,
+                           const int16_t sx1) {
   const uint32_t width = bitmap[0];
-  const uint32_t height = bitmap[1];
-  const register uint32_t idxoff __asm("r0") = 2 + (screen_y - bmp_y) * (width / 4);
-  if (screen_y < bmp_y)
-    return;
-  if (screen_y >= (bmp_y + height))
-    return;
+  const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 4);
   for (int32_t x = sx0 / 4; x < sx1 / 4; x++) {
     const uint32_t indices = bitmap[idxoff + x];
     const uint8_t shifts[4] = {6, 4, 2, 0};
@@ -136,7 +126,17 @@ uint16_t* DynamicDisplay::getBuffer() {
   return screenbuffer;
 }
 
+void (*drawFuncs[])(const int16_t,
+                    const int16_t,
+                    const int16_t,
+                    const uint16_t*,
+                    const uint8_t*,
+                    const uint8_t,
+                    const int16_t,
+                    const int16_t) = {&drawBitmapPal4, &drawBitmapPal4, &drawBitmapPal16};
+
 void DynamicDisplay::drawSprites(const uint8_t count) {
+  startDrawing();
 #if SHOW_FPS
   frame_count++;
   uint32_t new_time = Pokitto::Core::getTime();
@@ -152,16 +152,14 @@ void DynamicDisplay::drawSprites(const uint8_t count) {
       screenbuffer[x] = (y / 6) << 0;
     }
 
-    // assert that count < maxSprites
-    // Drawing a full screen image has quite an impact on FPS: 50->3
     for (int i = 0; i < count; i++) {
-      if (sprites[i].palsize == 4) {
-        drawBitmapPal4(y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data,
-                       sprites[i].transp, sprites[i].sx0, sprites[i].sx1);
-      } else {
-        drawBitmapPal16(y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data,
-                        sprites[i].transp, sprites[i].sx0, sprites[i].sx1);
-      }
+      if (y < sprites[i].y || y >= sprites[i].sy1)
+        continue;
+      // TODO: function calling seems to take a toll: try to inline the drawing functions
+      // instead? or maybe try first to pass the sprite as parameter instead of expanding it.
+      (drawFuncs[static_cast<uint8_t>(sprites[i].palsize)])(
+          y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data, sprites[i].transp,
+          sprites[i].sx0, sprites[i].sx1);
     }
 
 #if SHOW_FPS
