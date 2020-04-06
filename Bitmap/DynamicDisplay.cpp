@@ -135,7 +135,7 @@ void (*drawFuncs[])(const int16_t,
                     const int16_t,
                     const int16_t) = {&drawBitmapPal4, &drawBitmapPal4, &drawBitmapPal16};
 
-void DynamicDisplay::drawSprites(const uint8_t count) {
+void DynamicDisplay::drawSprites() {
   startDrawing();
 #if SHOW_FPS
   frame_count++;
@@ -146,37 +146,44 @@ void DynamicDisplay::drawSprites(const uint8_t count) {
     old_time = new_time;
   }
 #endif
-  for (uint8_t y = 0; y < LCDHEIGHT; y++) {
-    for (uint8_t x = 0; x < LCDWIDTH; x++) {
-      // Let's setup a nice sunset with code
-      screenbuffer[x] = (y / 6) << 0;
-    }
+  uint8_t y = 0;
 
-    for (int i = 0; i < count; i++) {
-      if (y < sprites[i].y || y >= sprites[i].sy1)
-        continue;
-      // TODO: function calling seems to take a toll: try to inline the drawing functions
-      // instead? or maybe try first to pass the sprite as parameter instead of expanding it.
-      (drawFuncs[static_cast<uint8_t>(sprites[i].palsize)])(
-          y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data, sprites[i].transp,
-          sprites[i].sx0, sprites[i].sx1);
-    }
+  for (uint8_t s = 0; s < maxSlots; s++) {
+    for (uint8_t p = 0; p < LCDHEIGHT / maxSlots; p++) {
+      for (uint8_t x = 0; x < LCDWIDTH; x++) {
+        // Let's setup a nice sunset with code
+        screenbuffer[x] = (y / 6) << 0;
+      }
+
+      for (uint8_t ii = 0; ii < slotsCnt[s]; ii++) {
+        uint8_t i = slots[s][ii];
+        if (y < sprites[i].y || y >= sprites[i].sy1)
+          continue;
+        (drawFuncs[static_cast<uint8_t>(sprites[i].palsize)])(
+            y, sprites[i].x, sprites[i].y, sprites[i].pal, sprites[i].data, sprites[i].transp,
+            sprites[i].sx0, sprites[i].sx1);
+      }
 
 #if SHOW_FPS
-    if (y < 4) {
-      for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
-        // Let's paint the FPS
-        screenbuffer[x] = 0x001f;
+      if (y < 4) {
+        for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
+          // Let's paint the FPS
+          screenbuffer[x] = 0x001f;
+        }
       }
-    }
-    if (y < 2) {
-      for (uint8_t x = 0; x < LCDWIDTH; x++) {
-        // Let's paint a ruler
-        screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
+      if (y < 2) {
+        for (uint8_t x = 0; x < LCDWIDTH; x++) {
+          // Let's paint a ruler
+          screenbuffer[x] = (x % 10) ? 0x000 : 0xFFFF;
+        }
       }
-    }
 #endif
 
-    drawLine();
+      drawLine();
+      y++;
+    }
+  }
+  for (uint8_t s = 0; s < maxSlots; s++) {
+    slotsCnt[s] = 0;
   }
 }
