@@ -71,7 +71,7 @@ class DynamicDisplay {
 
  private:
   void tile(uint8_t i) {
-		// Segment to segment intersection.
+    // Segment to segment intersection.
     const int16_t a1 = sprites[i].y;
     const int16_t a2 = sprites[i].sy1;
 
@@ -80,8 +80,8 @@ class DynamicDisplay {
     uint8_t b2 = step;
 
     for (uint8_t s = 0; s < maxSlots; s++) {
-			// TODO: add an overdraw counter.
-      if (a2 >= b1 && b2 >= a1 && slotsCnt[s]<maxSpritesPerSlot)
+      // TODO: add an overdraw counter.
+      if (a2 >= b1 && b2 >= a1 && slotsCnt[s] < maxSpritesPerSlot)
         slots[s][slotsCnt[s]++] = i;
       b1 += step;
       b2 += step;
@@ -91,11 +91,11 @@ class DynamicDisplay {
  private:
   static const uint8_t maxSprites = 255;
   DynamicSprite sprites[maxSprites];
-	// Let's assume the geometry is well spread across 11 bands of 176/11=16 pixels each
+  // Let's assume the geometry is well spread across 11 bands of 176/11=16 pixels each
   static const uint8_t maxSlots = 11;
-	// Assuming a tilemap game with 16x16 tiles, there would be max 15*2 tiles in each band.
-	// With 64 sprites per band, we still have space for 34/2=17 16x16 sprites in the band.
- 	static const uint8_t maxSpritesPerSlot = 64;
+  // Assuming a tilemap game with 16x16 tiles, there would be max 15*2 tiles in each band.
+  // With 64 sprites per band, we still have space for 34/2=17 16x16 sprites in the band.
+  static const uint8_t maxSpritesPerSlot = 64;
   uint8_t slots[maxSlots][maxSpritesPerSlot];
   uint8_t slotsCnt[maxSlots] = {
       0,

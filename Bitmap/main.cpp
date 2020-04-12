@@ -1,10 +1,10 @@
 #include "DynamicDisplay.hpp"
 #include "Pokitto.h"
 #include "Synth.h"
-#include "gfxdata.h"
-#include "pokitto_icon.h"
-#include "level.h"
 #include "backgrounds.h"
+#include "gfxdata.h"
+#include "level.h"
+#include "pokitto_icon.h"
 #include "tiles.h"
 
 struct MySprite {
@@ -29,11 +29,11 @@ int main() {
   uint8_t arpmode = 0;
 
   // Drawing a full screen image has quite an impact on FPS
-  //display.setup(0, background_pal, background_bmp, 0, PaletteSize::PAL4, 0, 0);
+  // display.setup(0, background_pal, background_bmp, 0, PaletteSize::PAL4, 0, 0);
   display.setup(1, pokitto_icon_pal, pokitto_icon, 1, PaletteSize::PAL16, 0, 0);
-  //display.setup(0, rgb565pal, tile_152, 0, PaletteSize::PAL4, 0, 0);
+  // display.setup(0, rgb565pal, tile_152, 0, PaletteSize::PAL4, 0, 0);
   display.setup(0, bg_001_pal, bg_001_data, 0xf, PaletteSize::PAL2, 0, 0);
-  //display.setup(1, tile_025_pal, tile_025_data, 0x0, PaletteSize::PAL16, 0, 0);
+  // display.setup(1, tile_025_pal, tile_025_data, 0x0, PaletteSize::PAL16, 0, 0);
 
   srand(134719);
   const uint16_t* pals[] = {sprite1_pal, sprite2_pal, sprite3_pal, sprite4_pal};
