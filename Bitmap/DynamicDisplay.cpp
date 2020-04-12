@@ -1,10 +1,10 @@
 #define SHOW_FPS 1
 #include "DynamicDisplay.hpp"
 
-// This is the one line framebuffer of 220 +4 pixels.
-// The +4 is to allow 4 pixels of overflow when rendering sprites so that they don't have to
+// This is the one line framebuffer of 220 +8 pixels.
+// The +8 is to allow 8 pixels of overflow when rendering sprites so that they don't have to
 // perform more boundary tests.
-static uint16_t __attribute__((section(".bss"))) __attribute__((aligned))
+static uint16_t __attribute__((section(".bss"))) __attribute__((aligned)) __restrict__
 screenbuffer[LCDWIDTH + 8];
 
 static inline void setup_data(uint16_t data) {
@@ -81,8 +81,8 @@ void __attribute__((noinline)) DynamicDisplay::drawLine() {
 static void drawBitmapPal16(const int16_t screen_y,
                             const int16_t bmp_x,
                             const int16_t bmp_y,
-                            const uint16_t* palette,
-                            const uint8_t* bitmap,
+                            const uint16_t* __restrict__ palette,
+                            const uint8_t* __restrict__ bitmap,
                             const uint8_t transparent,
                             const int16_t sx0,
                             const int16_t sx1) {
@@ -103,8 +103,8 @@ static void drawBitmapPal16(const int16_t screen_y,
 static void drawBitmapPal4(const int16_t screen_y,
                            const int16_t bmp_x,
                            const int16_t bmp_y,
-                           const uint16_t* palette,
-                           const uint8_t* bitmap,
+                           const uint16_t* __restrict__ palette,
+                           const uint8_t* __restrict__ bitmap,
                            const uint8_t transparent,
                            const int16_t sx0,
                            const int16_t sx1) {
@@ -122,8 +122,26 @@ static void drawBitmapPal4(const int16_t screen_y,
   }
 }
 
-uint16_t* DynamicDisplay::getBuffer() {
-  return screenbuffer;
+static void drawBitmapPal2(const int16_t screen_y,
+                           const int16_t bmp_x,
+                           const int16_t bmp_y,
+                           const uint16_t* __restrict__ palette,
+                           const uint8_t* __restrict__ bitmap,
+                           const uint8_t transparent,
+                           const int16_t sx0,
+                           const int16_t sx1) {
+  const uint32_t width = bitmap[0];
+  const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 8);
+  for (int32_t x = sx0 / 8; x < 1+sx1 / 8; x++) {
+    const uint32_t indices = bitmap[idxoff + x];
+    const uint8_t shifts[8] = {7, 6, 5, 4, 3, 2, 1, 0};
+    for (uint32_t i = 0; i < 8; i++) {
+      uint32_t pidx = (indices >> shifts[i]) & 0x1;
+      if (pidx != transparent) {
+        screenbuffer[bmp_x + x * 8 + i] = palette[pidx];
+      }
+    }
+  }
 }
 
 void (*drawFuncs[])(const int16_t,
@@ -133,7 +151,7 @@ void (*drawFuncs[])(const int16_t,
                     const uint8_t*,
                     const uint8_t,
                     const int16_t,
-                    const int16_t) = {&drawBitmapPal4, &drawBitmapPal4, &drawBitmapPal16};
+                    const int16_t) = {&drawBitmapPal2, &drawBitmapPal4, &drawBitmapPal16};
 
 void DynamicDisplay::drawSprites() {
   startDrawing();
