@@ -1,11 +1,10 @@
 #include "DynamicDisplay.hpp"
 #include "Pokitto.h"
 #include "Synth.h"
-#include "backgrounds.h"
+#include "assets.h"
 #include "gfxdata.h"
 #include "level.h"
 #include "pokitto_icon.h"
-#include "tiles.h"
 
 struct MySprite {
   int16_t x, y, w, h, vx, vy;
@@ -47,8 +46,12 @@ int main() {
     mySprites[i].h = sprite_bmp[1];
     mySprites[i].vx = -8 + rand() % 16;
     mySprites[i].vy = -8 + rand() % 16;
-    mySprites[i].pal = pals[rand() % 4];
-    display.setup(i, pals[rand() % 4], bmps[rand() % 2], 0, PaletteSize::PAL4, mySprites[i].x,
+    //    mySprites[i].pal = pals[rand() % 4];
+    //    display.setup(i, pals[rand() % 4], bmps[rand() % 2], 0, PaletteSize::PAL4,
+    //    mySprites[i].x, mySprites[i].y);
+    mySprites[i].pal = tile_pals[i % 180];
+    display.setup(i, tile_pals[i % 180], tile_datas[i % 180],
+                  tile_pals[i % 180][0] == 0 ? 0x00 : 0xff, palSizes[i % 180], mySprites[i].x,
                   mySprites[i].y);
   }
 
