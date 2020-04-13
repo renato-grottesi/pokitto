@@ -1,14 +1,13 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #define PNG_DEBUG 3
 #include <png.h>
 
-void abort_(const char * s, ...)
-{
+void abort_(const char* s, ...) {
   va_list args;
   va_start(args, s);
   vfprintf(stderr, s, args);
@@ -26,20 +25,18 @@ png_byte bit_depth;
 png_structp png_ptr;
 png_infop info_ptr;
 int number_of_passes;
-png_bytep * row_pointers;
+png_bytep* row_pointers;
 
-void read_png_file(char* file_name)
-{
-  char header[8];    // 8 is the maximum size that can be checked
+void read_png_file(char* file_name) {
+  char header[8];  // 8 is the maximum size that can be checked
 
   /* open file and test for it being a png */
-  FILE *fp = fopen(file_name, "rb");
+  FILE* fp = fopen(file_name, "rb");
   if (!fp)
     abort_("[read_png_file] File %s could not be opened for reading", file_name);
   fread(header, 1, 8, fp);
   if (png_sig_cmp(header, 0, 8))
     abort_("[read_png_file] File %s is not recognized as a PNG file", file_name);
-
 
   /* initialize stuff */
   png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -67,62 +64,59 @@ void read_png_file(char* file_name)
   number_of_passes = png_set_interlace_handling(png_ptr);
   png_read_update_info(png_ptr, info_ptr);
 
-  if (color_type == PNG_COLOR_TYPE_PALETTE)
-	{
-		png_colorp palette;
-		int num_palette;
-		png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette);
-		//printf("\nImage %dx%d with palette of %d elements and %d bits read: { ", width, height, num_palette, bit_depth);
-		//for(int i=0; i<num_palette; i++) printf(" RGB={0x%02X, 0x%02X, 0x%02X}, ", palette[i].red, palette[i].green, palette[i].blue);
-		//printf("}\n");
-		printf("\nuint16_t %s_pal[%d] = { ", file_name, num_palette);
-		for(int i=0; i<num_palette; i++)
-		{
-			//fedcba9876543210
-			//        rrrrrrrr
-			//rrrrr000
-			//        gggggggg
-			//     gggggg00
-			//        bbbbbbbb
-			//           bbbbb
-			unsigned int rgb565 = 0x0000;
-			rgb565 |= ((unsigned int)(palette[i].red & 0b11111000)) << 8;
-			rgb565 |= ((unsigned int)(palette[i].green & 0b11111100)) << 3;
-			rgb565 |= ((unsigned int)(palette[i].blue & 0b11111000)) >> 3;
-			printf("0x%04X, ", rgb565);
-		}
-		printf("};\n");
-	}
+  if (color_type == PNG_COLOR_TYPE_PALETTE) {
+    png_colorp palette;
+    int num_palette;
+    png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette);
+    // printf("\nImage %dx%d with palette of %d elements and %d bits read: { ", width, height,
+    // num_palette, bit_depth); for(int i=0; i<num_palette; i++) printf(" RGB={0x%02X, 0x%02X,
+    // 0x%02X}, ", palette[i].red, palette[i].green, palette[i].blue); printf("}\n");
+    printf("\nstatic const uint16_t __restrict__ %s_pal[%d] = { ", file_name, num_palette);
+    for (int i = 0; i < num_palette; i++) {
+      // fedcba9876543210
+      //        rrrrrrrr
+      // rrrrr000
+      //        gggggggg
+      //     gggggg00
+      //        bbbbbbbb
+      //           bbbbb
+      unsigned int rgb565 = 0x0000;
+      rgb565 |= ((unsigned int)(palette[i].red & 0b11111000)) << 8;
+      rgb565 |= ((unsigned int)(palette[i].green & 0b11111100)) << 3;
+      rgb565 |= ((unsigned int)(palette[i].blue & 0b11111000)) >> 3;
+      printf("0x%04X, ", rgb565);
+    }
+    printf("};\n");
+  }
 
   /* read file */
   if (setjmp(png_jmpbuf(png_ptr)))
     abort_("[read_png_file] Error during read_image");
 
-  row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
-  for (y=0; y<height; y++)
-    row_pointers[y] = (png_byte*) malloc(png_get_rowbytes(png_ptr,info_ptr));
+  row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * height);
+  for (y = 0; y < height; y++)
+    row_pointers[y] = (png_byte*)malloc(png_get_rowbytes(png_ptr, info_ptr));
 
   png_read_image(png_ptr, row_pointers);
 
   fclose(fp);
 
-	// bits per pixel:        0 1 2 3 4 5 6 7 8
-	unsigned char mult[9] = { 0,8,4,0,2,0,0,0,1};
+  // bits per pixel:        0 1 2 3 4 5 6 7 8
+  unsigned char mult[9] = {0, 8, 4, 0, 2, 0, 0, 0, 1};
 
-	printf("\nuint8_t %s_data[] = { %d, %d, \n", file_name, width, height);
-	for (y=0; y<height; y++) {
-		png_byte* row = row_pointers[y];
-		for (x=0; x<width/mult[bit_depth]; x++) {
+  printf("\nstatic const uint8_t __restrict__ %s_data[] = { %d, %d, \n", file_name, width,
+         height);
+  for (y = 0; y < height; y++) {
+    png_byte* row = row_pointers[y];
+    for (x = 0; x < width / mult[bit_depth]; x++) {
       printf("0x%02x, ", row[x]);
     }
     printf("\n");
   }
-	printf("};\n");
-
+  printf("};\n");
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
   if (argc != 2)
     abort_("Usage: program_name <file_in>>");
 

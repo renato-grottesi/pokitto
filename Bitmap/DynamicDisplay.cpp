@@ -4,8 +4,8 @@
 // This is the one line framebuffer of 220 +8 pixels.
 // The +8 is to allow 8 pixels of overflow when rendering sprites so that they don't have to
 // perform more boundary tests.
-static uint16_t __attribute__((section(".bss"))) __attribute__((aligned)) __restrict__
-screenbuffer[LCDWIDTH + 8];
+static uint16_t __attribute__((section(".bss")))
+__attribute__((aligned)) __restrict__ screenbuffer[LCDWIDTH + 8];
 
 static inline void setup_data(uint16_t data) {
   uint32_t p2 = 0;
@@ -132,7 +132,7 @@ static void drawBitmapPal2(const int16_t screen_y,
                            const int16_t sx1) {
   const uint32_t width = bitmap[0];
   const uint32_t idxoff = 2 + (screen_y - bmp_y) * (width / 8);
-  for (int32_t x = sx0 / 8; x < 1+sx1 / 8; x++) {
+  for (int32_t x = sx0 / 8; x < sx1 / 8; x++) {
     const uint32_t indices = bitmap[idxoff + x];
     const uint8_t shifts[8] = {7, 6, 5, 4, 3, 2, 1, 0};
     for (uint32_t i = 0; i < 8; i++) {

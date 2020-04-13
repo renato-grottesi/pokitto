@@ -28,8 +28,11 @@ class DynamicSprite {
     x = _x;
     y = _y;
 
+    // The first x to read shouldn't be negative
     sx0 = x < 0 ? (-x) : 0;
-    sx1 = (x + data[0]) >= ((int16_t)LCDWIDTH) ? (((int16_t)LCDWIDTH) - x) : data[0];
+    // The last x to read is assumed to not be negative and it should be inside the screen.
+    // The +7 below is to cope with PAL2 bitmaps that need to read 8 colors per pixel.
+    sx1 = (x + data[0]) > ((int16_t)LCDWIDTH + 7) ? (((int16_t)LCDWIDTH + 7) - x) : data[0];
     sy1 = y + data[1];
   };
 
