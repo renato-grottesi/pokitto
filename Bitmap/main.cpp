@@ -1,6 +1,7 @@
 #include "DynamicDisplay.hpp"
 #include "Pokitto.h"
 #include "Synth.h"
+#include "World.hpp"
 #include "assets.h"
 #include "gfxdata.h"
 #include "level.h"
@@ -15,6 +16,7 @@ int main() {
   Pokitto::Core mygame;
   Pokitto::Sound snd;
   DynamicDisplay display;
+  World world(display, level_width, level_height, (uint8_t**)level_data);
 
   const int16_t speed = 4;
   const uint8_t spriteCount = 255;
@@ -46,9 +48,9 @@ int main() {
     mySprites[i].h = sprite_bmp[1];
     mySprites[i].vx = -8 + rand() % 16;
     mySprites[i].vy = -8 + rand() % 16;
-    //    mySprites[i].pal = pals[rand() % 4];
-    //    display.setup(i, pals[rand() % 4], bmps[rand() % 2], 0, PaletteSize::PAL4,
-    //    mySprites[i].x, mySprites[i].y);
+    // mySprites[i].pal = pals[rand() % 4];
+    // display.setup(i, pals[rand() % 4], bmps[rand() % 2], 0, PaletteSize::PAL4,
+    // mySprites[i].x, mySprites[i].y);
     mySprites[i].pal = tile_pals[i % 180];
     display.setup(i, tile_pals[i % 180], tile_datas[i % 180],
                   tile_pals[i % 180][0] == 0 ? 0x00 : 0xff, palSizes[i % 180], mySprites[i].x,
@@ -66,6 +68,9 @@ int main() {
   while (mygame.isRunning()) {
     if (mygame.update(true)) {
       display.drawSprites();
+      icon_x = world.updateCameraX(icon_x);
+      icon_y = world.updateCameraY(icon_y);
+      world.render();
 
       display.setPosition(0, 0, 0);
       // Move mySprites advancing x and y and bouncing from hidden edges
