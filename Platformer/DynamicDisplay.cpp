@@ -171,7 +171,7 @@ void DynamicDisplay::drawSprites() {
   for (uint8_t s = 0; s < maxSlots; s++) {
     for (uint8_t p = 0; p < LCDHEIGHT / maxSlots; p++) {
       for (uint8_t x = 0; x < LCDWIDTH; x++) {
-        screenbuffer[x] = y < LCDHEIGHT / 2 ? 0x6DE0 : 0x4400;  // TODO
+        screenbuffer[x] = topDownColors[y / (LCDHEIGHT / 2)];
       }
 
       for (uint8_t ii = 0; ii < slotsCnt[s]; ii++) {

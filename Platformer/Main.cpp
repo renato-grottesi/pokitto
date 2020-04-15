@@ -10,11 +10,12 @@ int main() {
   Pokitto::Sound snd;
   DynamicDisplay display;
   World world(display, level_width, level_height, (uint8_t*)level_data);
+  display.setTopDownColors(0x6DE0, 0x4400);
 
   int16_t cameraX = 0;
   int16_t cameraY = 256;
 
-  int16_t tonefreq = 33;
+  int16_t tonefreq = 13;
   uint8_t amplitude = 255;
   uint8_t wavetype = 1;
   uint8_t arpmode = 0;

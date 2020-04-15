@@ -72,6 +72,11 @@ class DynamicDisplay {
     tile(_i);
   };
 
+  void setTopDownColors(uint16_t top, uint16_t down) {
+    topDownColors[0] = top;
+    topDownColors[1] = down;
+  };
+
  private:
   void tile(uint8_t i) {
     // Segment to segment intersection.
@@ -92,6 +97,7 @@ class DynamicDisplay {
   }
 
  private:
+  uint16_t topDownColors[2] = {0x0, 0x0};
   static const uint8_t maxSprites = 255;
   DynamicSprite sprites[maxSprites];
   // Let's assume the geometry is well spread across 11 bands of 176/11=16 pixels each
