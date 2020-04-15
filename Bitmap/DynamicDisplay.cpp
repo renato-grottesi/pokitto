@@ -162,6 +162,8 @@ void DynamicDisplay::drawSprites() {
     fps = frame_count;
     frame_count = 0;
     old_time = new_time;
+    // Serial pc(USBTX, USBRX);
+    // pc.printf("FPS: %d\n", fps);
   }
 #endif
   uint8_t y = 0;
@@ -169,8 +171,7 @@ void DynamicDisplay::drawSprites() {
   for (uint8_t s = 0; s < maxSlots; s++) {
     for (uint8_t p = 0; p < LCDHEIGHT / maxSlots; p++) {
       for (uint8_t x = 0; x < LCDWIDTH; x++) {
-        // Let's setup a nice sunset with code
-        screenbuffer[x] = (y / 6) << 0;
+        screenbuffer[x] = y < LCDHEIGHT / 2 ? 0x6DE0 : 0x4400;  // TODO
       }
 
       for (uint8_t ii = 0; ii < slotsCnt[s]; ii++) {
