@@ -3,9 +3,7 @@
 #include "Synth.h"
 #include "World.hpp"
 #include "assets.h"
-#include "gfxdata.h"
 #include "level.h"
-#include "pokitto_icon.h"
 
 int main() {
   Pokitto::Core mygame;

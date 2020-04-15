@@ -1,13 +1,13 @@
 ###############################################################################
 # Project settings
-PROJECT := draw
+PROJECT := platformer
 ###############################################################################
 
 # add files to be compiled
 
 POKITTO_LIB_PATH = /home/renato/Projects/PokittoLib/Pokitto
 
-OBJECTS += main.o
+OBJECTS += Main.o
 OBJECTS += DynamicDisplay.o
 OBJECTS += World.o
 
@@ -242,8 +242,6 @@ C_FLAGS += -DDEVICE_SPI=1
 C_FLAGS += -DDEVICE_ANALOGIN=1
 C_FLAGS += -DDEVICE_PWMOUT=1
 C_FLAGS += -DTARGET_LIKE_CORTEX_M0
-C_FLAGS += -include
-C_FLAGS += mbed_config.h
 
 CXX_FLAGS += -std=c++17
 CXX_FLAGS += -O3
@@ -279,8 +277,6 @@ CXX_FLAGS += -DDEVICE_SPI=1
 CXX_FLAGS += -DDEVICE_ANALOGIN=1
 CXX_FLAGS += -DDEVICE_PWMOUT=1
 CXX_FLAGS += -DTARGET_LIKE_CORTEX_M0
-CXX_FLAGS += -include
-CXX_FLAGS += mbed_config.h
 
 ASM_FLAGS += -x
 ASM_FLAGS += assembler-with-cpp
