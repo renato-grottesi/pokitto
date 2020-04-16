@@ -1,4 +1,5 @@
-#define SHOW_FPS 1
+#define DEBUG 1
+#define VISUAL_FPS 0
 #include "DynamicDisplay.hpp"
 
 // This is the one line framebuffer of 220 +8 pixels.
@@ -155,15 +156,15 @@ void (*drawFuncs[])(const int16_t,
 
 void DynamicDisplay::drawSprites() {
   startDrawing();
-#if SHOW_FPS
+#if DEBUG || VISUAL_FPS
   frame_count++;
   uint32_t new_time = Pokitto::Core::getTime();
   if ((new_time - old_time) > 1000) {
     fps = frame_count;
     frame_count = 0;
     old_time = new_time;
-    // Serial pc(USBTX, USBRX);
-    // pc.printf("FPS: %d\n", fps);
+    Serial pc(USBTX, USBRX);
+    pc.printf("FPS: %d\n", fps);
   }
 #endif
   uint8_t y = 0;
@@ -183,7 +184,7 @@ void DynamicDisplay::drawSprites() {
             sprites[i].sx0, sprites[i].sx1);
       }
 
-#if SHOW_FPS
+#if VISUAL_FPS
       if (y < 4) {
         for (uint8_t x = 0; x < LCDWIDTH && x < fps; x++) {
           // Let's paint the FPS
@@ -205,4 +206,34 @@ void DynamicDisplay::drawSprites() {
   for (uint8_t s = 0; s < maxSlots; s++) {
     slotsCnt[s] = 0;
   }
+}
+void DynamicDisplay::tile(uint8_t i) {
+  // Segment to segment intersection.
+  const int16_t a1 = sprites[i].y;
+  const int16_t a2 = sprites[i].sy1;
+
+  uint8_t step = LCDHEIGHT / maxSlots;
+  uint8_t b1 = 0;
+  uint8_t b2 = step;
+
+#if DEBUG
+  uint32_t overflow = 0;
+#endif
+
+  for (uint8_t s = 0; s < maxSlots; s++) {
+#if DEBUG
+    if (a2 >= b1 && b2 >= a1 && slotsCnt[s] >= maxSpritesPerSlot)
+      overflow++;
+#endif
+    if (a2 >= b1 && b2 >= a1 && slotsCnt[s] < maxSpritesPerSlot)
+      slots[s][slotsCnt[s]++] = i;
+    b1 += step;
+    b2 += step;
+  }
+#if DEBUG
+  if (overflow > 0) {
+    Serial pc(USBTX, USBRX);
+    pc.printf("%d sprites overflow\n", overflow);
+  }
+#endif
 }

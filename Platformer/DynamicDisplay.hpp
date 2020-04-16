@@ -78,23 +78,7 @@ class DynamicDisplay {
   };
 
  private:
-  void tile(uint8_t i) {
-    // Segment to segment intersection.
-    const int16_t a1 = sprites[i].y;
-    const int16_t a2 = sprites[i].sy1;
-
-    uint8_t step = LCDHEIGHT / maxSlots;
-    uint8_t b1 = 0;
-    uint8_t b2 = step;
-
-    for (uint8_t s = 0; s < maxSlots; s++) {
-      // TODO: add an overdraw counter.
-      if (a2 >= b1 && b2 >= a1 && slotsCnt[s] < maxSpritesPerSlot)
-        slots[s][slotsCnt[s]++] = i;
-      b1 += step;
-      b2 += step;
-    }
-  }
+  void tile(uint8_t i);
 
  private:
   uint16_t topDownColors[2] = {0x0, 0x0};
@@ -110,7 +94,7 @@ class DynamicDisplay {
       0,
   };
 
-#if SHOW_FPS
+#if DEBUG
   uint32_t old_time = 0;
   uint32_t frame_count = 0;
   uint32_t fps = 0;
