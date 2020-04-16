@@ -1,10 +1,9 @@
 #include "World.hpp"
 #include "assets.h"  // TODO: pass in the constructor
 
-uint8_t World::render() {
+uint8_t World::render(uint8_t cnt) {
   const uint16_t XCentralTile = xWorldToTile(cameraX);
   const uint16_t YCentralTile = yWorldToTile(cameraY);
-  uint8_t cnt = 0;
 
   // TODO: clear this parallax code and make it configurable
   const int16_t xOff = (maxX - cameraX) * LCDWIDTH / maxX;
@@ -27,8 +26,8 @@ uint8_t World::render() {
       uint8_t tile = data[yt * width + xt];
       if (tile) {
         tile--;
-        uint16_t screenX = minX + xt * 16 - cameraX;
-        uint16_t screenY = minY + yt * 16 - cameraY;
+        uint16_t screenX = minX + xTileToWorld(xt) - cameraX;
+        uint16_t screenY = minY + yTileToWorld(yt) - cameraY;
         display.setup(cnt++, tile_pals[tile], tile_datas[tile],
                       tile_pals[tile][0] == 0 ? 0x00 : 0xff, palSizes[tile], screenX, screenY);
       }

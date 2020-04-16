@@ -10,6 +10,7 @@ POKITTO_LIB_PATH = /home/renato/Projects/PokittoLib/Pokitto
 OBJECTS += Main.o
 OBJECTS += DynamicDisplay.o
 OBJECTS += World.o
+OBJECTS += Player.o
 
 ###############################################################################
 # Boiler-plate

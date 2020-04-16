@@ -1,4 +1,5 @@
 #include "DynamicDisplay.hpp"
+#include "Player.hpp"
 #include "Pokitto.h"
 #include "Synth.h"
 #include "World.hpp"
@@ -10,6 +11,7 @@ int main() {
   Pokitto::Sound snd;
   DynamicDisplay display;
   World world(display, level_width, level_height, (uint8_t*)level_data);
+  Player player(display, level_width, level_height, (uint8_t*)level_data);
   display.setTopDownColors(0x6DE0, 0x4400);
 
   int16_t cameraX = 0;
@@ -30,24 +32,31 @@ int main() {
   // Game loop
   while (mygame.isRunning()) {
     if (mygame.update(true)) {
-      world.render();
-
-      const uint16_t incr = 4;
+      if (mygame.buttons.aBtn()) {
+        player.BtnA();
+      }
+      if (mygame.buttons.bBtn()) {
+        player.BtnB();
+      }
       if (mygame.buttons.rightBtn()) {
-        cameraX += incr;
+        player.BtnR();
       }
       if (mygame.buttons.leftBtn()) {
-        cameraX -= incr;
+        player.BtnL();
       }
       if (mygame.buttons.downBtn()) {
-        cameraY += incr;
+        player.BtnD();
       }
       if (mygame.buttons.upBtn()) {
-        cameraY -= incr;
+        player.BtnU();
       }
-      cameraX = world.updateCameraX(cameraX);
-      cameraY = world.updateCameraY(cameraY);
 
+      cameraX = world.updateCameraX(player.cameraX());
+      cameraY = world.updateCameraY(player.cameraY());
+
+      uint8_t cnt = 0;
+      cnt = world.render(cnt);
+      cnt = player.render(cnt, cameraX, cameraY);
       display.drawSprites();
     }
   }
