@@ -37,13 +37,23 @@ class Player {
   int32_t y = 196 << 16;
   int32_t xSpeed = 0;
   int32_t ySpeed = 0;
-  uint8_t is_running = 0;
 
   enum class Button : uint8_t { Right, Left, Up, Down, A, B, C, Count };
-  enum class State : uint8_t { Stand, Walk, Run, Jump, Climb, Count };
+  static const uint8_t ButtonRight = static_cast<uint8_t>(Button::Right);
+  static const uint8_t ButtonLeft = static_cast<uint8_t>(Button::Left);
+  static const uint8_t ButtonUp = static_cast<uint8_t>(Button::Up);
+  static const uint8_t ButtonDown = static_cast<uint8_t>(Button::Down);
+  static const uint8_t ButtonA = static_cast<uint8_t>(Button::A);
+  static const uint8_t ButtonB = static_cast<uint8_t>(Button::B);
+  static const uint8_t ButtonC = static_cast<uint8_t>(Button::C);
   static const uint8_t ButtonsCount = static_cast<uint8_t>(Button::Count);
+  bool buttons[ButtonsCount] = {};
+
+  enum class State : uint8_t { Stand, Walk, Run, Jump, Climb, Count };
   static const uint8_t StatesCount = static_cast<uint8_t>(State::Count);
   State state = State::Stand;
-  bool buttons[ButtonsCount] = {};
+
   uint32_t lastUpdate = 0;
+  uint32_t jumpStart = 0;
+  uint32_t jumpSpeed = 0;
 };

@@ -11,31 +11,83 @@ void Player::update(void) {
 
   uint32_t newTime = Pokitto::Core::getTime();
   uint32_t deltaTime = newTime - lastUpdate;
-  lastUpdate = newTime;
 
-  const uint8_t stateu8 = static_cast<uint8_t>(state);
   const uint16_t xDrag = 10;
   const uint16_t yGravity = 14;
   const uint32_t speeds[2] = {4000, 7000};
 
-  if (buttons[static_cast<uint8_t>(Button::A)]) {
-    is_running = 1;
-  }
-  if (buttons[static_cast<uint8_t>(Button::B)]) {
-    if (state != State::Jump) {
-      ySpeed = -5 * speeds[is_running];
-      state = State::Jump;
+  pc.printf("RLUDABC=%d%d%d%d%d%d%d\n", buttons[0], buttons[1], buttons[2], buttons[3],
+            buttons[4], buttons[5], buttons[6]);
+  switch (state) {
+    case State::Stand: {
+      if (buttons[ButtonRight] || buttons[ButtonLeft])
+        state = State::Walk;
+      else if (buttons[ButtonB]) {
+        state = State::Jump;
+        jumpStart = newTime;
+        jumpSpeed = -5 * speeds[0];
+      }
+      pc.printf("Stand, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
+      break;
     }
-  }
-  if (buttons[static_cast<uint8_t>(Button::Right)]) {
-    xSpeed = speeds[is_running];
-  }
-  if (buttons[static_cast<uint8_t>(Button::Left)]) {
-    xSpeed = -speeds[is_running];
-  }
-  if (buttons[static_cast<uint8_t>(Button::Down)]) {
-  }
-  if (buttons[static_cast<uint8_t>(Button::Up)]) {
+    case State::Walk: {
+      if (!buttons[ButtonRight] && !buttons[ButtonLeft])
+        state = State::Stand;
+      if (buttons[ButtonRight] && buttons[ButtonLeft])
+        state = State::Stand;
+      else if (buttons[ButtonA])
+        state = State::Run;
+      else if (buttons[ButtonB]) {
+        state = State::Jump;
+        jumpStart = newTime;
+        jumpSpeed = -5 * speeds[0];
+      }
+      if (buttons[ButtonRight])
+        xSpeed = speeds[0];
+      if (buttons[ButtonLeft])
+        xSpeed = -speeds[0];
+      pc.printf("Walk, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
+      break;
+    }
+    case State::Run: {
+      if (!buttons[ButtonRight] && !buttons[ButtonLeft])
+        state = State::Walk;
+      if (buttons[ButtonRight] && buttons[ButtonLeft])
+        state = State::Walk;
+      if (!buttons[ButtonA])
+        state = State::Walk;
+      if (buttons[ButtonB]) {
+        state = State::Jump;
+        jumpStart = newTime;
+        jumpSpeed = -5 * speeds[1];
+      }
+      if (buttons[ButtonRight])
+        xSpeed = speeds[1];
+      if (buttons[ButtonLeft])
+        xSpeed = -speeds[1];
+      pc.printf("Run, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
+      break;
+    }
+    case State::Jump: {
+      if (buttons[ButtonB] && ((newTime - jumpStart) < 50)) {
+        ySpeed = jumpSpeed;
+      } else {
+        jumpStart = 0;
+      }
+      if (buttons[ButtonRight])
+        xSpeed = speeds[0];
+      if (buttons[ButtonLeft])
+        xSpeed = -speeds[0];
+      if ((y >> 16) > 12 * TILE_SIZE)
+        state = State::Stand;  // TODO: replace with touching the floor
+      pc.printf("Jump, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
+      break;
+    }
+    case State::Climb: {
+      break;
+    }
+    default:
+      break;
   }
 
   x += xSpeed * deltaTime;
@@ -45,13 +97,11 @@ void Player::update(void) {
     x = 0;
   if (y < 0)
     y = 0;
-
   if ((x >> 16) > width * TILE_SIZE)
     x = (width * TILE_SIZE) << 16;
   // if ((y>>16) > height * TILE_SIZE) // GAME OVER!!!
   if ((y >> 16) > 13 * TILE_SIZE) {
     y = (13 * TILE_SIZE) << 16;
-    state = State::Walk;
   }
 
   if (xSpeed < 0) {
@@ -74,12 +124,9 @@ void Player::update(void) {
   if (ySpeed > 10000)
     ySpeed = 10000;
 
-  pc.printf("xSpeed = %d, ySpeed = %d, deltaTime = %d\n", xSpeed, ySpeed, deltaTime);
-
-  is_running = 0;
-
   for (uint8_t b = 0; b < ButtonsCount; b++)
     buttons[b] = 0;
+  lastUpdate = newTime;
 }
 
 uint8_t Player::render(uint8_t cnt, int16_t camX, int16_t camY) {
