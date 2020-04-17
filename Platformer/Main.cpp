@@ -51,6 +51,8 @@ int main() {
         player.BtnU();
       }
 
+      player.update();
+
       cameraX = world.updateCameraX(player.cameraX());
       cameraY = world.updateCameraY(player.cameraY());
 
