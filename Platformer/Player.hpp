@@ -16,33 +16,26 @@ class Player {
   uint8_t render(uint8_t cnt, int16_t camX, int16_t camY);
 
   void BtnR() {
-    x += speeds[is_running];
-    if (x > width * TILE_SIZE)
-      x = width * TILE_SIZE;
+    xSpeed = speeds[is_running];
+    xDir = 1;
   };
   void BtnL() {
-    x -= speeds[is_running];
-    if (x < 0)
-      x = 0;
+    xSpeed = speeds[is_running];
+    xDir = -1;
   };
   void BtnD() {
-    y++;
-    if (y > height * TILE_SIZE)
-      // GAME OVER!!!
-      y = 0;
-    if (y > 14 * TILE_SIZE)
-      y = 14 * TILE_SIZE;
+    ySpeed = 30000;
+    yDir = 1;
   };
   void BtnU() {
-    y--;
-    if (y < 0)
-      y = 0;
+    ySpeed = -30000;
+    yDir = -1;
   };
   void BtnA() { is_running = 1; };
-  void BtnB() { is_running = 1; };
+  void BtnB() { ySpeed = -400000; };
 
-  uint16_t cameraX() { return x; }
-  uint16_t cameraY() { return y; }
+  uint16_t cameraX() { return x >> 16; }
+  uint16_t cameraY() { return y >> 16; }
 
  private:
   DynamicDisplay& display;
@@ -50,8 +43,15 @@ class Player {
   const uint16_t height;
   uint8_t* data;
 
-  int16_t x = 48;
-  int16_t y = 196;
+  // x and y are int16_t with 16 bits of decimal precision.
+  int32_t x = 48 << 16;
+  int32_t y = 196 << 16;
+  const uint32_t speeds[2] = {90000, 150000};
+  uint16_t xDrag = 10000;
+  uint16_t yDrag = 10000;
+  int32_t xSpeed = 0;
+  int8_t xDir = 1;
+  int32_t ySpeed = 0;
+  int8_t yDir = 1;
   uint8_t is_running = 0;
-  const uint8_t speeds[2] = {2, 4};
 };
