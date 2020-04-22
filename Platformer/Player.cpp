@@ -2,6 +2,68 @@
 
 #include "assets.h"  // TODO: pass in the constructor
 
+static const uint8_t COLL_R = 0b00000001;
+static const uint8_t COLL_L = 0b00000010;
+static const uint8_t COLL_U = 0b00000100;
+static const uint8_t COLL_D = 0b00001000;
+
+uint8_t Player::collide() {
+  int32_t ptx = (x >> 16) / TILE_SIZE;
+  int32_t pty = (y >> 16) / TILE_SIZE;
+
+  uint8_t collRes = 0;
+  uint8_t tile;
+  int32_t distance;
+
+  if (ptx <= 0) {
+    collRes |= COLL_L;
+  }
+  if (ptx >= width) {
+    collRes |= COLL_R;
+  }
+  if (pty <= 0) {
+    collRes |= COLL_U;
+  }
+  if (pty >= height) {
+    collRes |= COLL_D;
+  }
+
+  if (ptx > 0)
+    ptx--;
+  tile = data[pty * width + ptx];
+  distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
+  distance *= distance;
+  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+    collRes |= COLL_L;
+
+  ptx++;
+  if (pty > 0)
+    pty--;
+  tile = data[pty * width + ptx];
+  distance = (y >> 16) - 8 - (pty * TILE_SIZE);
+  distance *= distance;
+  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+    collRes |= COLL_U;
+
+  pty++;
+  pty++;
+  tile = data[pty * width + ptx];
+  distance = (y >> 16) - 8 - (pty * TILE_SIZE);
+  distance *= distance;
+  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+    collRes |= COLL_D;
+
+  pty--;
+  ptx++;
+  tile = data[pty * width + ptx];
+  distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
+  distance *= distance;
+  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+    collRes |= COLL_R;
+
+  return collRes;
+}
+
 void Player::update(void) {
   Serial pc(USBTX, USBRX);
   if (lastUpdate == 0) {
@@ -16,8 +78,12 @@ void Player::update(void) {
   const uint16_t yGravity = 14;
   const uint32_t speeds[2] = {4000, 7000};
 
-  pc.printf("RLUDABC=%d%d%d%d%d%d%d\n", buttons[0], buttons[1], buttons[2], buttons[3],
-            buttons[4], buttons[5], buttons[6]);
+  uint8_t collision = collide();
+  pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
+            (collision & COLL_U) != 0, (collision & COLL_D) != 0);
+
+  // pc.printf("RLUDABC=%d%d%d%d%d%d%d\n", buttons[0], buttons[1], buttons[2], buttons[3],
+  //          buttons[4], buttons[5], buttons[6]);
   switch (state) {
     case State::Stand: {
       if (buttons[ButtonRight] || buttons[ButtonLeft])
@@ -27,7 +93,6 @@ void Player::update(void) {
         jumpStart = newTime;
         jumpSpeed = -5 * speeds[0];
       }
-      pc.printf("Stand, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
       break;
     }
     case State::Walk: {
@@ -46,7 +111,6 @@ void Player::update(void) {
         xSpeed = speeds[0];
       if (buttons[ButtonLeft])
         xSpeed = -speeds[0];
-      pc.printf("Walk, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
       break;
     }
     case State::Run: {
@@ -65,7 +129,6 @@ void Player::update(void) {
         xSpeed = speeds[1];
       if (buttons[ButtonLeft])
         xSpeed = -speeds[1];
-      pc.printf("Run, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
       break;
     }
     case State::Jump: {
@@ -78,9 +141,9 @@ void Player::update(void) {
         xSpeed = speeds[0];
       if (buttons[ButtonLeft])
         xSpeed = -speeds[0];
-      if ((y >> 16) > 12 * TILE_SIZE)
+      if (collision & COLL_D || (y >> 16) > 12 * TILE_SIZE) {
         state = State::Stand;  // TODO: replace with touching the floor
-      pc.printf("Jump, speed = %d, %d, delta = %d\n", xSpeed, ySpeed, deltaTime);
+      }
       break;
     }
     case State::Climb: {
@@ -90,8 +153,10 @@ void Player::update(void) {
       break;
   }
 
-  x += xSpeed * deltaTime;
-  y += ySpeed * deltaTime;
+  if ((xSpeed > 0 && !(collision & COLL_R)) || (xSpeed < 0 && !(collision & COLL_L)))
+    x += xSpeed * deltaTime;
+  if (!(collision & COLL_D) || (ySpeed < 0))
+    y += ySpeed * deltaTime;
 
   if (x < 0)
     x = 0;

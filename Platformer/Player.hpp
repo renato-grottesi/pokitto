@@ -27,6 +27,9 @@ class Player {
   uint16_t cameraY() { return y >> 16; }
 
  private:
+  uint8_t collide();
+
+ private:
   DynamicDisplay& display;
   const uint16_t width;
   const uint16_t height;
