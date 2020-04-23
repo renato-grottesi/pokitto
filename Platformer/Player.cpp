@@ -34,8 +34,12 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
   distance *= distance;
-  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
-    collRes |= COLL_L;
+  if (distance < (TILE_SIZE * TILE_SIZE)) {
+    if (tile > htb)
+      collRes |= COLL_L;
+    if (tile == 13)
+      data[pty * width + ptx] = 0;
+  }
 
   ptx++;
   if (pty > 0)
@@ -43,24 +47,36 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (y >> 16) - 8 - (pty * TILE_SIZE);
   distance *= distance;
-  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
-    collRes |= COLL_U;
+  if (distance < (TILE_SIZE * TILE_SIZE)) {
+    if (tile > htb)
+      collRes |= COLL_U;
+    if (tile == 13)
+      data[pty * width + ptx] = 0;
+  }
 
   pty++;
   pty++;
   tile = data[pty * width + ptx];
   distance = (y >> 16) - 8 - (pty * TILE_SIZE);
   distance *= distance;
-  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
-    collRes |= COLL_D;
+  if (distance < (TILE_SIZE * TILE_SIZE)) {
+    if (tile > htb)
+      collRes |= COLL_D;
+    if (tile == 13)
+      data[pty * width + ptx] = 0;
+  }
 
   pty--;
   ptx++;
   tile = data[pty * width + ptx];
   distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
   distance *= distance;
-  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
-    collRes |= COLL_R;
+  if (distance < (TILE_SIZE * TILE_SIZE)) {
+    if (tile > htb)
+      collRes |= COLL_R;
+    if (tile == 13)
+      data[pty * width + ptx] = 0;
+  }
 
   return collRes;
 }
@@ -80,7 +96,6 @@ void Player::update(void) {
   const uint32_t speeds[2] = {4000, 7000};
   const int32_t jSpeeds[2] = {-7000, -9000};
 
-  uint8_t collision = collide();
   pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
             (collision & COLL_U) != 0, (collision & COLL_D) != 0);
 
@@ -155,12 +170,29 @@ void Player::update(void) {
       break;
   }
 
-  if ((xSpeed > 0 && !(collision & COLL_R)) || (xSpeed < 0 && !(collision & COLL_L)))
-    x += xSpeed * deltaTime;
-  if (!(collision & COLL_D) || (ySpeed < 0))
-    y += ySpeed * deltaTime;
-  else
+  int32_t old_x = x;
+  int32_t old_y = y;
+
+  // Update position and limit the increase to max 4 pixel to avoid collision glitches
+  if ((xSpeed > 0 && !(collision & COLL_R)) || (xSpeed < 0 && !(collision & COLL_L))) {
+    int32_t inc = xSpeed > 0 ? xSpeed * deltaTime : -xSpeed * deltaTime;
+    if (inc > (4 << 16))
+      inc = 4 << 16;
+    x += inc * (xSpeed > 0 ? 1 : -1);
+  }
+  if (!(collision & COLL_D) || (ySpeed < 0)) {
+    int32_t inc = ySpeed > 0 ? ySpeed * deltaTime : -ySpeed * deltaTime;
+    if (inc > (4 << 16))
+      inc = 4 << 16;
+    y += inc * (ySpeed > 0 ? 1 : -1);
+  } else
     ySpeed = 0;
+
+  collision = collide();
+  if (collision & (COLL_R | COLL_L))
+    x = old_x;
+  if (collision & (COLL_U | COLL_D))
+    y = old_y;
 
   if (x < 0)
     x = 0;

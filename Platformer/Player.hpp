@@ -59,4 +59,5 @@ class Player {
   uint32_t lastUpdate = 0;
   uint32_t jumpStart = 0;
   uint32_t jumpSpeed = 0;
+  uint8_t collision = 0;
 };
