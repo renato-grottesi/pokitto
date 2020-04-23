@@ -8,6 +8,7 @@ static const uint8_t COLL_U = 0b00000100;
 static const uint8_t COLL_D = 0b00001000;
 
 uint8_t Player::collide() {
+  static const uint8_t htb = 116;  // hard tiles begin
   int32_t ptx = (x >> 16) / TILE_SIZE;
   int32_t pty = (y >> 16) / TILE_SIZE;
 
@@ -33,7 +34,7 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
   distance *= distance;
-  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
     collRes |= COLL_L;
 
   ptx++;
@@ -42,7 +43,7 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (y >> 16) - 8 - (pty * TILE_SIZE);
   distance *= distance;
-  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
     collRes |= COLL_U;
 
   pty++;
@@ -50,7 +51,7 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (y >> 16) - 8 - (pty * TILE_SIZE);
   distance *= distance;
-  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
     collRes |= COLL_D;
 
   pty--;
@@ -58,7 +59,7 @@ uint8_t Player::collide() {
   tile = data[pty * width + ptx];
   distance = (x >> 16) - 8 - (ptx * TILE_SIZE);
   distance *= distance;
-  if (tile > 0 && distance < (TILE_SIZE * TILE_SIZE))
+  if (tile > htb && distance < (TILE_SIZE * TILE_SIZE))
     collRes |= COLL_R;
 
   return collRes;
@@ -75,8 +76,9 @@ void Player::update(void) {
   uint32_t deltaTime = newTime - lastUpdate;
 
   const uint16_t xDrag = 10;
-  const uint16_t yGravity = 14;
+  const uint16_t yGravity = 24;
   const uint32_t speeds[2] = {4000, 7000};
+  const int32_t jSpeeds[2] = {-7000, -9000};
 
   uint8_t collision = collide();
   pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
@@ -91,7 +93,7 @@ void Player::update(void) {
       else if (buttons[ButtonB]) {
         state = State::Jump;
         jumpStart = newTime;
-        jumpSpeed = -5 * speeds[0];
+        jumpSpeed = jSpeeds[0];
       }
       break;
     }
@@ -105,7 +107,7 @@ void Player::update(void) {
       else if (buttons[ButtonB]) {
         state = State::Jump;
         jumpStart = newTime;
-        jumpSpeed = -5 * speeds[0];
+        jumpSpeed = jSpeeds[0];
       }
       if (buttons[ButtonRight])
         xSpeed = speeds[0];
@@ -123,7 +125,7 @@ void Player::update(void) {
       if (buttons[ButtonB]) {
         state = State::Jump;
         jumpStart = newTime;
-        jumpSpeed = -5 * speeds[1];
+        jumpSpeed = jSpeeds[1];
       }
       if (buttons[ButtonRight])
         xSpeed = speeds[1];
@@ -132,7 +134,7 @@ void Player::update(void) {
       break;
     }
     case State::Jump: {
-      if (buttons[ButtonB] && ((newTime - jumpStart) < 50)) {
+      if (buttons[ButtonB] && ((newTime - jumpStart) < 250)) {
         ySpeed = jumpSpeed;
       } else {
         jumpStart = 0;
@@ -142,7 +144,7 @@ void Player::update(void) {
       if (buttons[ButtonLeft])
         xSpeed = -speeds[0];
       if (collision & COLL_D || (y >> 16) > 12 * TILE_SIZE) {
-        state = State::Stand;  // TODO: replace with touching the floor
+        state = State::Stand;
       }
       break;
     }
@@ -157,6 +159,8 @@ void Player::update(void) {
     x += xSpeed * deltaTime;
   if (!(collision & COLL_D) || (ySpeed < 0))
     y += ySpeed * deltaTime;
+  else
+    ySpeed = 0;
 
   if (x < 0)
     x = 0;
@@ -184,10 +188,10 @@ void Player::update(void) {
   }
 
   ySpeed += yGravity * deltaTime;
-  if (ySpeed < -10000)
-    ySpeed = -10000;
-  if (ySpeed > 10000)
-    ySpeed = 10000;
+  if (ySpeed < -100000)
+    ySpeed = -100000;
+  if (ySpeed > 100000)
+    ySpeed = 100000;
 
   for (uint8_t b = 0; b < ButtonsCount; b++)
     buttons[b] = 0;
