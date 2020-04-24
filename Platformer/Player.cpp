@@ -2,10 +2,12 @@
 
 #include "assets.h"  // TODO: pass in the constructor
 
-static const uint8_t COLL_R = 0b00000001;
-static const uint8_t COLL_L = 0b00000010;
-static const uint8_t COLL_U = 0b00000100;
-static const uint8_t COLL_D = 0b00001000;
+static const uint8_t COLL_R = 0b00000001;  // right
+static const uint8_t COLL_L = 0b00000010;  // left
+static const uint8_t COLL_U = 0b00000100;  // up
+static const uint8_t COLL_D = 0b00001000;  // down
+static const uint8_t COLL_C = 0b00010000;  // coin
+static const uint8_t COLL_E = 0b00100000;  // enemy
 
 uint8_t Player::collide() {
   static const uint8_t htb = 116;  // hard tiles begin
@@ -94,7 +96,7 @@ void Player::update(void) {
   const uint16_t xDrag = 10;
   const uint16_t yGravity = 24;
   const uint32_t speeds[2] = {4000, 7000};
-  const int32_t jSpeeds[2] = {-7000, -9000};
+  const int32_t jSpeeds[2] = {-8000, -10000};
 
   pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
             (collision & COLL_U) != 0, (collision & COLL_D) != 0);
@@ -173,17 +175,18 @@ void Player::update(void) {
   int32_t old_x = x;
   int32_t old_y = y;
 
-  // Update position and limit the increase to max 4 pixel to avoid collision glitches
+  // Update position and limit the increase to max 6 pixel to avoid collision glitches
+  static const uint8_t maxpix = 6;
   if ((xSpeed > 0 && !(collision & COLL_R)) || (xSpeed < 0 && !(collision & COLL_L))) {
     int32_t inc = xSpeed > 0 ? xSpeed * deltaTime : -xSpeed * deltaTime;
-    if (inc > (4 << 16))
-      inc = 4 << 16;
+    if (inc > (maxpix << 16))
+      inc = maxpix << 16;
     x += inc * (xSpeed > 0 ? 1 : -1);
   }
   if (!(collision & COLL_D) || (ySpeed < 0)) {
     int32_t inc = ySpeed > 0 ? ySpeed * deltaTime : -ySpeed * deltaTime;
-    if (inc > (4 << 16))
-      inc = 4 << 16;
+    if (inc > (maxpix << 16))
+      inc = maxpix << 16;
     y += inc * (ySpeed > 0 ? 1 : -1);
   } else
     ySpeed = 0;
@@ -232,6 +235,56 @@ void Player::update(void) {
 
 uint8_t Player::render(uint8_t cnt, int16_t camX, int16_t camY) {
   uint8_t tile = 60;
+  uint32_t newTime = Pokitto::Core::getTime();
+  switch (state) {
+    case State::Stand: {
+      tile = (newTime % 1000) > 500 ? 60 : 61;
+      break;
+    }
+    case State::Walk: {
+      switch (newTime % 1000) {
+        case 0 ... 250:
+          tile = 66;
+          break;
+        case 251 ... 500:
+          tile = 67;
+          break;
+        case 501 ... 750:
+          tile = 68;
+          break;
+        case 751 ... 999:
+          tile = 69;
+          break;
+      }
+      break;
+    }
+    case State::Run: {
+      switch (newTime % 1000) {
+        case 0 ... 250:
+          tile = 66;
+          break;
+        case 251 ... 500:
+          tile = 67;
+          break;
+        case 501 ... 750:
+          tile = 68;
+          break;
+        case 751 ... 999:
+          tile = 69;
+          break;
+      }
+      break;
+    }
+    case State::Jump: {
+      tile = 62;
+      break;
+    }
+    case State::Climb: {
+      break;
+    }
+    default:
+      break;
+  }
 
   int16_t cx = (int16_t)(LCDWIDTH / 2) - camX + (x >> 16);
   int16_t cy = (int16_t)(LCDHEIGHT / 2) - camY + (y >> 16);
