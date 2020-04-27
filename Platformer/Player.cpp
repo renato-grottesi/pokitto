@@ -96,10 +96,10 @@ void Player::update(void) {
   const uint16_t xDrag = 10;
   const uint16_t yGravity = 24;
   const uint32_t speeds[2] = {4000, 7000};
-  const int32_t jSpeeds[2] = {-8000, -10000};
+  const int32_t jSpeeds[2] = {-9000, -12000};
 
-  pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
-            (collision & COLL_U) != 0, (collision & COLL_D) != 0);
+  // pc.printf("RLUD=%d%d%d%d\n", (collision & COLL_R) != 0, (collision & COLL_L) != 0,
+  //          (collision & COLL_U) != 0, (collision & COLL_D) != 0);
 
   // pc.printf("RLUDABC=%d%d%d%d%d%d%d\n", buttons[0], buttons[1], buttons[2], buttons[3],
   //          buttons[4], buttons[5], buttons[6]);
@@ -107,7 +107,7 @@ void Player::update(void) {
     case State::Stand: {
       if (buttons[ButtonRight] || buttons[ButtonLeft])
         state = State::Walk;
-      else if (buttons[ButtonB]) {
+      else if (buttons[ButtonB] && (collision & COLL_D)) {
         state = State::Jump;
         jumpStart = newTime;
         jumpSpeed = jSpeeds[0];
@@ -121,7 +121,7 @@ void Player::update(void) {
         state = State::Stand;
       else if (buttons[ButtonA])
         state = State::Run;
-      else if (buttons[ButtonB]) {
+      else if (buttons[ButtonB] && (collision & COLL_D)) {
         state = State::Jump;
         jumpStart = newTime;
         jumpSpeed = jSpeeds[0];
@@ -139,7 +139,7 @@ void Player::update(void) {
         state = State::Walk;
       if (!buttons[ButtonA])
         state = State::Walk;
-      if (buttons[ButtonB]) {
+      if (buttons[ButtonB] && (collision & COLL_D)) {
         state = State::Jump;
         jumpStart = newTime;
         jumpSpeed = jSpeeds[1];
@@ -151,7 +151,7 @@ void Player::update(void) {
       break;
     }
     case State::Jump: {
-      if (buttons[ButtonB] && ((newTime - jumpStart) < 250)) {
+      if (buttons[ButtonB] && ((newTime - jumpStart) < 250) && (!(collision & COLL_U))) {
         ySpeed = jumpSpeed;
       } else {
         jumpStart = 0;
@@ -160,7 +160,7 @@ void Player::update(void) {
         xSpeed = speeds[0];
       if (buttons[ButtonLeft])
         xSpeed = -speeds[0];
-      if (collision & COLL_D || (y >> 16) > 12 * TILE_SIZE) {
+      if (collision & COLL_D || (y >> 16) > 15 * TILE_SIZE) {
         state = State::Stand;
       }
       break;
@@ -175,15 +175,15 @@ void Player::update(void) {
   int32_t old_x = x;
   int32_t old_y = y;
 
-  // Update position and limit the increase to max 6 pixel to avoid collision glitches
-  static const uint8_t maxpix = 6;
+  // Update position and limit the increase to max 4 pixel to avoid collision glitches
+  static const uint8_t maxpix = 4;
   if ((xSpeed > 0 && !(collision & COLL_R)) || (xSpeed < 0 && !(collision & COLL_L))) {
     int32_t inc = xSpeed > 0 ? xSpeed * deltaTime : -xSpeed * deltaTime;
     if (inc > (maxpix << 16))
       inc = maxpix << 16;
     x += inc * (xSpeed > 0 ? 1 : -1);
   }
-  if (!(collision & COLL_D) || (ySpeed < 0)) {
+  if (!(collision & (COLL_D | COLL_U))) {
     int32_t inc = ySpeed > 0 ? ySpeed * deltaTime : -ySpeed * deltaTime;
     if (inc > (maxpix << 16))
       inc = maxpix << 16;
@@ -204,8 +204,8 @@ void Player::update(void) {
   if ((x >> 16) > width * TILE_SIZE)
     x = (width * TILE_SIZE) << 16;
   // if ((y>>16) > height * TILE_SIZE) // GAME OVER!!!
-  if ((y >> 16) > 13 * TILE_SIZE) {
-    y = (13 * TILE_SIZE) << 16;
+  if ((y >> 16) > 15 * TILE_SIZE) {
+    y = (15 * TILE_SIZE) << 16;
   }
 
   if (xSpeed < 0) {

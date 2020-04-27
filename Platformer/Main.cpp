@@ -17,8 +17,8 @@ int main() {
   int16_t cameraX = 0;
   int16_t cameraY = 256;
 
-  int16_t tonefreq = 13;
-  uint8_t amplitude = 255;
+  int16_t tonefreq = 1;
+  uint8_t amplitude = 1;
   uint8_t wavetype = 1;
   uint8_t arpmode = 0;
 
